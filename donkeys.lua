@@ -5,13 +5,16 @@ do
 	donkeys = Threads(
 			params.nThreads,
 			function(idx)
+				params = threadParams
 				require "torch"
 				require "xlua"
 				require "string"
+				require "image"
+
 				tid = idx -- Thread id
-				print(string.format("Initialized thread with id : %d.", tid))
+				print(string.format("Initialized thread %d of %d.", tid,params.nThreads))
 				loadData = require "loadData"
-				loadData.init(tid,threadParams.nThreads)
+				loadData.init(tid,params.nThreads)
 			end
 			)
 end
