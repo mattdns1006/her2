@@ -34,7 +34,6 @@ function models.fmp0()
 	local nOutputsDense = cnn_filters[{-1}]*3*3
 	model:add(nn.View(-1))
 	model:add(nn.Linear(90,1))
-	
 
 	return model
 end
