@@ -12,23 +12,29 @@ cmd:text()
 cmd:text("Options")
 cmd:option("-nThreads",4,"Number of threads to load data.")
 cmd:option("-nWindows",10,"Number of windows/ROI.")
+cmd:option("-windowSize",200,"Size of ROI.")
 cmd:option("-cuda",1,"Use GPU?")
 cmd:text()
 params = cmd:parse(arg)
 
 dofile("donkeys.lua")
---eg = image.loadJPG("data/roi_1/1.jpg")
+models = require "models"
+model = models.fmp0()
+print("==> model")
+print(model)
 
 count = 1
 data = {}
-while true do
+while true do 
 donkeys:addjob(function()
-			return loadData.loadXY(params.nWindows)
+			return loadData.loadXY(params.nWindows,params.windowSize)
 		end,
 		function(Xy)
 			data[count] = Xy
-			count = count + 1	
+			print(#data)
 		end
 		)
-		if count == 10 then break end
+		if #data == 1 then break end
 end
+
+imgs = data[1]["data"]

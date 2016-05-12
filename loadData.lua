@@ -38,17 +38,24 @@ function loadData.augmentCrop(img,squareWidth)
 	return img:narrow(2,hStart,squareWidth):narrow(3,wStart,squareWidth) --cropped 
 end
 
-function loadData.loadXY(nWindows)
+function loadData.loadXY(nWindows,windowSize)
 	if currentObs == nil then currentObs = 1 end
 	local currentTable = allPaths[currentObs]
 	local nObsT = csv.length(currentTable[1])
+	local tensors = {}
 	local Xy = {}
 	for i = 1, nWindows do
 		 imgPath = currentTable[1][torch.random(nObsT)] -- Draw random int to select window 
 		 img = image.loadJPG(imgPath)
-		 img = loadData.augmentCrop(img, 200)
-		 Xy[i] = {img,currentTable[2],currentTable[3],currentTable[4]}
+		 img = loadData.augmentCrop(img, windowSize)
+		 tensors[i] = img:reshape(1,3,windowSize,windowSize)
 	end
+		
+	Xy["data"] = torch.cat(tensors,1) 
+	Xy["score"] = currentTable[2]
+	Xy["percScore"] = currentTable[3] 
+	Xy["caseNo"] = currentTable[4] 
+
 	if currentObs == #allPaths then 
 		currentObs = 1
 	else 
