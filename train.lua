@@ -10,7 +10,7 @@ function train(X,y)
 
 		if params.cuda == 1 then
 			X = X:cuda()
-			y = torch.LongTensor{y}:cuda()
+			y = torch.DoubleTensor{y}:cuda()
 		end
 
 		outputs = model:forward(X)
@@ -25,13 +25,14 @@ function train(X,y)
 
 	if count % 10 == 0 then
 		lossesT = torch.Tensor(losses)
-		print("mean loss", lossesT:mean())
-		t = torch.range(1,lossesT:size(1))
-		--gnuplot.plot({"Training loss",t,lossesT})
+		print(string.format("Count %d ==> Target = %f, prediciton %f, current loss %f, ma loss %f.",count, y[1], outputs[1], loss, lossesT[{{-10,-1}}]:mean()))
+		if params.displayGraph == 1 then 
+			t = torch.range(1,lossesT:size(1))
+			gnuplot.plot({"Training loss",t,lossesT})
+		end
 		collectgarbage()
 	end
-	
-	--print(count,loss)
+	xlua.progress(count,10000)
 	count = count + 1
 end
 

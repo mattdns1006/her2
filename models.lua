@@ -2,42 +2,64 @@ layers = require "layers"
 
 models = {}
 
-function models.fmp0()
+function models.model1()
 
-	 nFeats = 100 
-	 cnn_filters = torch.Tensor{nFeats,nFeats*2,nFeats*3,nFeats*4,1}
-	 cnn_filter_size = {2,2,2,2,2,2}
-	 cnn_stride = {1,1,1,1,1,1}
-	 cnn_padding = {0,0,0,0,0,0}
+	 nFeats = 16 
+	 nLayers = 6 
+	 cnn_filters = torch.range(nFeats,nFeats*nLayers,nFeats)
+	 cnn_filters:fill(nFeats)
+	 cnn_filter_size = torch.Tensor(nLayers):fill(3)
+	 cnn_stride = torch.Tensor(nLayers):fill(1)
+	 cnn_padding = torch.Tensor(nLayers):fill(1)
 	
-	 fmp_filter_size = {2,2,2,2,2,2,2}
-
-	 ratio = 2/3
-	 fmp_output_ratio= {ratio,ratio,ratio,ratio,ratio,ratio}
-	 fmp_output_w = {20,12,7,4,2}
-	 fmp_output_h = {20,12,7,4,2}
+	 mp_filter_size = torch.Tensor(nLayers):fill(3)
+	 mp_stride = torch.Tensor(nLayers):fill(2)
+	 mp_padding = torch.Tensor(nLayers):fill(0)
 	
 	model = nn.Sequential()
 	
 	j = 0
-	for i = 1, 4 do
+	model:add(nn.SpatialBatchNormalization(3))
+	for i = 1, nLayers -1 do
 		j = j + 1
 		layers.add_cnn(model,i)
 		layers.add_af(model)
-		layers.add_fmp_explicit(model,i)
+		layers.add_mp(model,i)
 		model:add(nn.SpatialBatchNormalization(cnn_filters[i]))
 	end
 
 	layers.add_cnn(model,cnn_filters:size(1))
 	model:add(nn.SpatialBatchNormalization(cnn_filters[{-1}]))
+	layers.add_af(model)
 
-	local nOutputsDense = cnn_filters[{-1}]*3*3
-	model:add(nn.View(-1))
-	model:add(nn.Linear(90,1))
+	outputSize = model:forward(torch.randn(params.nWindows,3,params.windowSize,params.windowSize)):size()
+
+	nOutputsDense = outputSize[2]*outputSize[3]*outputSize[4] 
+
+	model:add(nn.View(nOutputsDense*params.nWindows))
+	model:add(nn.Linear(nOutputsDense*params.nWindows,1))
+	model:add(nn.Sigmoid())
 
 	return model
+end
+
+function models.main()
+	params = {} 
+	params.windowSize = 192
+	params.nWindows = 20 
+	model = models.model1()
+	print(model)
+	input = torch.randn(params.nWindows,3,192,192)
+
+	print(model:forward(input):size())
 end
 
 return models
 
 
+
+		
+	
+
+
+	

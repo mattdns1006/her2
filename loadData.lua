@@ -31,7 +31,7 @@ end
 
 function loadData.augmentCrop(img,squareWidth)
 	local angle = torch.uniform(2)
-	img = image.rotate(img,angle,"bilinear") 
+	--img = image.rotate(img,angle,"bilinear") 
 	local hMid, wMid = img:size(2)/2, img:size(3)/2 -- middle
 	local hStart, wStart = hMid - squareWidth/2, wMid - squareWidth/2
 	
@@ -40,10 +40,10 @@ end
 
 function loadData.loadXY(nWindows,windowSize)
 	if currentObs == nil then currentObs = 1 end
-	local currentTable = allPaths[currentObs]
-	local nObsT = csv.length(currentTable[1])
-	local tensors = {}
-	local Xy = {}
+	currentTable = allPaths[currentObs]
+	nObsT = csv.length(currentTable[1])
+	tensors = {}
+	Xy = {}
 	for i = 1, nWindows do
 		 imgPath = currentTable[1][torch.random(nObsT)] -- Draw random int to select window 
 		 img = image.loadJPG(imgPath)
@@ -53,7 +53,7 @@ function loadData.loadXY(nWindows,windowSize)
 		
 	Xy["data"] = torch.cat(tensors,1) 
 	Xy["score"] = currentTable[2]
-	Xy["percScore"] = currentTable[3] 
+	Xy["percScore"] = currentTable[3]/100 -- Normalize
 	Xy["caseNo"] = currentTable[4] 
 
 	if currentObs == #allPaths then 
@@ -63,6 +63,12 @@ function loadData.loadXY(nWindows,windowSize)
 	end
 	collectgarbage()
 	return Xy 
+end
+
+function loadData.main()
+	require "image"
+	loadData.init(1,2)
+	Xy = loadData.loadXY(20,200)
 end
 
 return loadData
