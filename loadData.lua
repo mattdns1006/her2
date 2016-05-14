@@ -29,25 +29,25 @@ function loadData.init(tid,nThreads)
 	 collectgarbage()
 end
 
-function loadData.augmentCrop(img,squareWidth)
-	local angle = torch.uniform(2)
+function loadData.augmentCrop(img,windowSize)
+	--angle = torch.uniform(2)
 	--img = image.rotate(img,angle,"bilinear") 
 	local hMid, wMid = img:size(2)/2, img:size(3)/2 -- middle
-	local hStart, wStart = hMid - squareWidth/2, wMid - squareWidth/2
+	local hStart, wStart = hMid - windowSize/2, wMid - windowSize/2
 	
-	return img:narrow(2,hStart,squareWidth):narrow(3,wStart,squareWidth) --cropped 
+	return img:narrow(2,hStart,windowSize):narrow(3,wStart,windowSize) --cropped 
 end
 
 function loadData.loadXY(nWindows,windowSize)
 	if currentObs == nil then currentObs = 1 end
-	currentTable = allPaths[currentObs]
-	nObsT = csv.length(currentTable[1])
-	tensors = {}
-	Xy = {}
+	local currentTable = allPaths[currentObs]
+	local nObsT = csv.length(currentTable[1])
+	local tensors = {}
+	local Xy = {}
 	for i = 1, nWindows do
-		 imgPath = currentTable[1][torch.random(nObsT)] -- Draw random int to select window 
-		 img = image.loadJPG(imgPath)
-		 img = loadData.augmentCrop(img, windowSize)
+		 local imgPath = currentTable[1][torch.random(nObsT)] -- Draw random int to select window 
+		 local img = image.loadJPG(imgPath)
+		 local img = loadData.augmentCrop(img, windowSize)
 		 tensors[i] = img:reshape(1,3,windowSize,windowSize)
 	end
 		
@@ -68,7 +68,7 @@ end
 function loadData.main()
 	require "image"
 	loadData.init(1,2)
-	Xy = loadData.loadXY(20,200)
+	Xy = loadData.loadXY(10,896)
 end
 
 return loadData

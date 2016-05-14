@@ -13,15 +13,15 @@ require "gnuplot"
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
-cmd:option("-nThreads",10,"Number of threads to load data.")
-cmd:option("-nWindows",40,"Number of windows/ROI.")
-cmd:option("-windowSize",96,"Size of ROI.")
+cmd:option("-nThreads",1:,"Number of threads to load data.")
+cmd:option("-nWindows",5,"Number of windows/ROI.")
+cmd:option("-windowSize",896,"Size of ROI.")
 cmd:option("-cuda",1,"Use GPU?")
-cmd:option("-run",0,"Run main function.")
+cmd:option("-run",1,"Run main function.")
 cmd:option("-display",0,"Display images.")
 cmd:option("-displayGraph",0,"Display graph.")
-cmd:option("-displayFreq",100,"Display images.")
-cmd:option("-lr",0.0001,"Learning rate.")
+cmd:option("-displayFreq",50,"Display images.")
+cmd:option("-lr",0.01,"Learning rate.")
 cmd:text()
 params = cmd:parse(arg)
 
@@ -40,7 +40,7 @@ function display(X,y,outputs)
 	if params.display == 1 then 
 		if imgDisplay == nil then 
 			local initPic = torch.range(1,torch.pow(params.windowSize,2),1):reshape(params.windowSize,params.windowSize)
-			imgDisplay = image.display{image=initPic, zoom=3, offscreen=false}
+			imgDisplay = image.display{image=initPic, zoom=1, offscreen=false}
 		end
 		if count % params.displayFreq == 0 then 
 			image.display{image = X, win = imgDisplay, legend = "Truth ".. y.." prediction ".. outputs[1]}
@@ -48,7 +48,7 @@ function display(X,y,outputs)
 	end
 end
 
-criterion = nn.BCECriterion()
+criterion = nn.MSECriterion()
 models = require "models"
 model = models.model1()
 parameters, gradParameters = model:getParameters()
