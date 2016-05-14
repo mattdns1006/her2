@@ -70,7 +70,7 @@ function run()
 				return loadData.loadXY(params.nWindows,params.windowSize)
 			end,
 			function(Xy)
-				X,y = Xy["data"], Xy["percScore"]
+				X,y = Xy["data"], Xy["score"]
 				train(X,y)
 				display(X,y,outputs)
 			end

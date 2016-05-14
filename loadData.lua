@@ -52,7 +52,7 @@ function loadData.loadXY(nWindows,windowSize)
 	end
 		
 	Xy["data"] = torch.cat(tensors,1) 
-	Xy["score"] = currentTable[2]
+	Xy["score"] = currentTable[2]/4
 	Xy["percScore"] = currentTable[3]/100 -- Normalize
 	Xy["caseNo"] = currentTable[4] 
 
