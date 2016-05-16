@@ -5,7 +5,7 @@ models = {}
 function models.model1()
 
 	 nFeats = 16 
-	 nLayers = 8 
+	 nLayers = 9 
 	 cnn_filters = torch.range(nFeats,nFeats*nLayers,nFeats)
 	 cnn_filters:fill(nFeats)
 	 cnn_filter_size = torch.Tensor(nLayers):fill(3)
@@ -45,7 +45,7 @@ end
 
 function models.main()
 	params = {} 
-	params.windowSize = 896 
+	params.windowSize = 2048 
 	params.nWindows = 4 
 	model = models.model1()
 	print(model)
