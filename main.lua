@@ -13,20 +13,21 @@ require "gnuplot"
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
-cmd:option("-nThreads",10,"Number of threads to load data.")
-cmd:option("-nWindows",1,"Number of windows/ROI.")
-cmd:option("-windowSize",2048,"Size of ROI.")
+cmd:option("-nThreads",14,"Number of threads to load data.")
+cmd:option("-nWindows",10,"Number of windows/ROI.")
+cmd:option("-windowSize",1024,"Size of ROI.")
 cmd:option("-cuda",1,"Use GPU?")
 cmd:option("-run",1,"Run main function.")
 cmd:option("-display",0,"Display images.")
 cmd:option("-displayGraph",0,"Display graph.")
 cmd:option("-displayFreq",50,"Display images.")
-cmd:option("-lr",0.0001,"Learning rate.")
+cmd:option("-lr",0.001,"Learning rate.")
 cmd:text()
 params = cmd:parse(arg)
 
 dofile("donkeys.lua")
 dofile("train.lua")
+dofile("counter.lua")
 
 optimState = {
 	learningRate = params.lr,
@@ -36,6 +37,7 @@ optimState = {
 }
 optimMethod = optim.adam
 
+
 function display(X,y,outputs)
 	if params.display == 1 then 
 		if imgDisplay == nil then 
@@ -43,7 +45,7 @@ function display(X,y,outputs)
 			imgDisplay = image.display{image=initPic, zoom=1, offscreen=false}
 		end
 		if count % params.displayFreq == 0 then 
-			image.display{image = X, win = imgDisplay, legend = "Truth ".. y.." prediction ".. outputs[1]}
+			image.display{image = X, win = imgDisplay, legend = "Truth ".. y .." prediction ".. outputs[1]}
 		end
 	end
 end
@@ -64,7 +66,7 @@ print(model)
 
 
 function run() 
-
+	counter = Counter.new()
 	while true do 
 	donkeys:addjob(function()
 				return loadData.loadXY(params.nWindows,params.windowSize)
@@ -73,6 +75,7 @@ function run()
 				X,y = Xy["data"], Xy["score"]
 				train(X,y)
 				display(X,y,outputs)
+				counter:add(y)
 			end
 			)
 			--if count == 50 then break end

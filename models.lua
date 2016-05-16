@@ -4,7 +4,7 @@ models = {}
 
 function models.model1()
 
-	 nFeats = 16 
+	 nFeats = 8 
 	 nLayers = 9 
 	 cnn_filters = torch.range(nFeats,nFeats*nLayers,nFeats)
 	 cnn_filters:fill(nFeats)

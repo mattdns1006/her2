@@ -29,6 +29,11 @@ function loadData.init(tid,nThreads)
 	 collectgarbage()
 end
 
+function loadData.oneHot(target,nTargets)
+	return torch.eye(nTargets):narrow(1,target+1,1):squeeze()
+end
+
+
 function loadData.augmentCrop(img,windowSize)
 	--angle = torch.uniform(2)
 	--img = image.rotate(img,angle,"bilinear") 
@@ -52,6 +57,7 @@ function loadData.loadXY(nWindows,windowSize)
 	end
 		
 	Xy["data"] = torch.cat(tensors,1) 
+	--Xy["score"] = loadData.oneHot(currentTable[2],4) -- categorical way
 	Xy["score"] = currentTable[2]/4
 	Xy["percScore"] = currentTable[3]/100 -- Normalize
 	Xy["caseNo"] = currentTable[4] 
@@ -65,10 +71,20 @@ function loadData.loadXY(nWindows,windowSize)
 	return Xy 
 end
 
-function loadData.main()
-	require "image"
-	loadData.init(1,2)
-	Xy = loadData.loadXY(10,896)
+function loadData.main(display)
+	if x== nil then
+		require "image"
+		loadData.init(1,1)
+		x = "Not nil"
+	end
+	local params = {}
+	params.windowSize = 1000
+	Xy = loadData.loadXY(10,params.windowSize)
+	if display == 1 then
+		initPic = torch.range(1,torch.pow(params.windowSize,2),1):reshape(params.windowSize,params.windowSize)
+		imgDisplay = image.display{image=initPic, zoom=1, offscreen=false}
+		image.display{image = Xy["data"], win = imgDisplay, legend = "Score = ".. Xy["score"].. ". Case number = " .. Xy["caseNo"]}
+	end
 end
 
 return loadData

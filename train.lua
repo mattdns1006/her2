@@ -11,6 +11,8 @@ function train(X,y)
 		if params.cuda == 1 then
 			X = X:cuda()
 			y = torch.DoubleTensor{y}:cuda()
+			--y = y:cuda()
+			
 		end
 
 		outputs = model:forward(X)
