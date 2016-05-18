@@ -13,15 +13,18 @@ require "gnuplot"
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
-cmd:option("-nThreads",14,"Number of threads to load data.")
-cmd:option("-nWindows",10,"Number of windows/ROI.")
-cmd:option("-windowSize",1024,"Size of ROI.")
+cmd:option("-nThreads",10,"Number of threads to load data.")
+cmd:option("-nWindows",1,"Number of windows/ROI.")
+cmd:option("-windowSize",2048,"Size of ROI.")
+cmd:option("-level",3,"What level to read images.")
 cmd:option("-cuda",1,"Use GPU?")
 cmd:option("-run",1,"Run main function.")
 cmd:option("-display",0,"Display images.")
+cmd:option("-displayFreq",80,"Display images.")
 cmd:option("-displayGraph",0,"Display graph.")
-cmd:option("-displayFreq",50,"Display images.")
-cmd:option("-lr",0.001,"Learning rate.")
+cmd:option("-displayGraphFreq",200,"Display graph frequency.")
+cmd:option("-lr",0.00003,"Learning rate.")
+cmd:option("-nFeats",16,"Number of features.")
 cmd:text()
 params = cmd:parse(arg)
 
@@ -78,7 +81,8 @@ function run()
 				counter:add(y)
 			end
 			)
-			--if count == 50 then break end
+			if count == displayFreq then print(counter) end
+
 	end
 
 end

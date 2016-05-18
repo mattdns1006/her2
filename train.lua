@@ -5,7 +5,7 @@ count = count or 1
 function train(X,y)
 
 	function feval(x)
-		if x~= parameters then parameters:copy(x) end
+		if x ~= parameters then parameters:copy(x) end
 		gradParameters:zero()
 
 		if params.cuda == 1 then
@@ -28,7 +28,7 @@ function train(X,y)
 	if count % 10 == 0 then
 		lossesT = torch.Tensor(losses)
 		print(string.format("Count %d ==> Target = %f, prediciton %f, current loss %f, ma loss %f.",count, y[1], outputs[1], loss, lossesT[{{-10,-1}}]:mean()))
-		if params.displayGraph == 1 then 
+		if params.displayGraph == 1 and count % params.displayGraphFreq ==0 then 
 			t = torch.range(1,lossesT:size(1))
 			gnuplot.plot({"Training loss",t,lossesT})
 		end

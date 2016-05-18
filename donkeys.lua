@@ -14,7 +14,7 @@ do
 				tid = idx -- Thread id
 				print(string.format("Initialized thread %d of %d.", tid,params.nThreads))
 				loadData = require "loadData"
-				loadData.init(tid,params.nThreads)
+				loadData.init(tid,params.nThreads,params.level)
 			end
 			)
 end
