@@ -22,6 +22,12 @@ local function BNInit(name)
 	end
 end
 
+local function linearInit(name)
+	for k,v in pairs(model:findModules('nn.Linear')) do
+	      v.bias:zero()
+	end
+end
+
 function models.model1()
 
 	 nFeats = params.nFeats 
@@ -60,15 +66,23 @@ function models.model1()
 	model:add(nn.View(nOutputsDense*params.nWindows)) -- Full combine
 	model:add(nn.Linear(nOutputsDense*params.nWindows,feats))
 	layers.add_af(model)
+	--[[
 	model:add(nn.Linear(feats,feats))
 	layers.add_af(model)
 	model:add(nn.Linear(feats,feats))
 	layers.add_af(model)
+	]]--
 	model:add(nn.Linear(feats,1))
 	model:add(nn.Sigmoid())
 
-	ConvInit(model)
-	BNInit(model)
+	ConvInit('cudnn.SpatialConvolution')
+   	ConvInit('nn.SpatialConvolution')
+      	BNInit('fbnn.SpatialBatchNormalization')
+	BNInit('cudnn.SpatialBatchNormalization')
+	BNInit('nn.SpatialBatchNormalization')
+	for k,v in pairs(model:findModules('nn.Linear')) do
+	      v.bias:zero()
+	end
 	return model
 end
 

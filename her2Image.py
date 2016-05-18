@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[11]:
+# In[1]:
 
 import openslide
 import cv2
@@ -20,7 +20,7 @@ from pylab import rcParams
 rcParams['figure.figsize'] = 10, 10
 
 
-# In[13]:
+# In[2]:
 
 """
 Helper functions.
@@ -146,7 +146,7 @@ def removeFiles(path):
         os.remove(f)
 
 
-# In[115]:
+# In[7]:
 
 """
 Main image object.
@@ -167,8 +167,8 @@ class her2Image():
         self.lowResDims = self.her2.level_dimensions[self.level] #3 is arbitrary but works
         self.lowResRGB = np.asarray(self.her2.read_region((0,0),self.level,(self.lowResDims[0],self.lowResDims[1]))).copy() 
         
-        plt.imshow(self.lowResRGB)
-        plt.show()
+        #plt.imshow(self.lowResRGB)
+        #plt.show()
         
         #Remove black
         black = np.logical_and.reduce((self.lowResRGB[:,:,0] > blackThresh,
@@ -176,7 +176,7 @@ class her2Image():
                                        self.lowResRGB[:,:,2] > blackThresh, 
                                        self.lowResRGB[:,:,3] > blackThresh))
         black4 = np.dstack([black for i in range(3)])
-        self.lowResRGB[np.logical_not(black4)] = eg.mode
+        self.lowResRGB[np.logical_not(black4)] = mstats.mode(self.lowResRGB[:,:,:3],axis=None)[0]
         
         
         self.lowRes = cv2.cvtColor(self.lowResRGB, cv2.COLOR_RGB2GRAY) # Grayscale
@@ -223,20 +223,20 @@ class her2Image():
             
 
 
-# In[120]:
+# In[27]:
 
 numberOfRegions = []
-imagesWithLines = [82,35]
+imagesWithLines = [84,82,35]
 if __name__ == "__main__":
 
     # Hyperparams
     minNoFactors = 10
-    threshArea = 0.6
+    threshArea = 0.3
     upscaleLevel= 1
     save = 1
     show = 1
-    displayProb = 0.01
-    windowSize = 68
+    displayProb = 0.00
+    windowSize = 108
     blackThresh = 120
     blurSize = 47
     
@@ -254,12 +254,12 @@ if __name__ == "__main__":
     
     
     # Generate ROIs and saave jpg
-    for caseNo in groundTruth.CaseNo.values:
+    for caseNo in groundTruth.CaseNo.values[:]:
     #for caseNo in imagesWithLines:
         
         nRegions = 0
         
-        newpath = writePath + "roi_" + str(caseNo) + "/"
+        newpath = writePath + "roi_" + str(caseNo) + "/" + str(upscaleLevel) + "/"
         if save == 1:
             removeFiles(newpath)
             if not os.path.exists(newpath):
@@ -293,4 +293,9 @@ print("Smallets x: ", min([x[0][1] for x in dims]))
 
 print("Biggest y: ", max([x[0][0] for x in dims]))
 print("Biggest x: ", max([x[0][1] for x in dims]))
+
+
+# In[ ]:
+
+
 
