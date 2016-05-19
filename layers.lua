@@ -1,5 +1,6 @@
-require 'torch'
 require 'nn'
+require 'cutorch'
+require "cunn"
 
 local layers = {}
 
@@ -13,6 +14,10 @@ function layers.add_af(model)
 	--return model:add(nn.Sigmoid())
 end
 
+function layers.add_bn(model,nFeats)
+	return model:add(nn.SpatialBatchNormalization(nFeats))
+end
+
 function layers.add_cnn(model,cnn_layer_no)
     --First check to see if we are using the first layer;
     if cnn_layer_no > 1 then
@@ -20,7 +25,7 @@ function layers.add_cnn(model,cnn_layer_no)
     else 
 	input_size0 = 3 --RGB
     end
-    return model:add(nn.SpatialConvolutionMM(input_size0,cnn_filters[cnn_layer_no],
+    return model:add(nn.SpatialConvolution(input_size0,cnn_filters[cnn_layer_no],
 	    cnn_filter_size[cnn_layer_no],cnn_filter_size[cnn_layer_no],
 	cnn_stride[cnn_layer_no],cnn_stride[cnn_layer_no],cnn_padding[cnn_layer_no],cnn_padding[cnn_layer_no]))
 end
