@@ -13,9 +13,9 @@ require "gnuplot"
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
-cmd:option("-nThreads",10,"Number of threads to load data.")
-cmd:option("-nWindows",1,"Number of windows/ROI.")
-cmd:option("-windowSize",2048,"Size of ROI.")
+cmd:option("-nThreads",8,"Number of threads to load data.")
+cmd:option("-nWindows",20,"Number of windows/ROI.")
+cmd:option("-windowSize",440,"Size of ROI.")
 cmd:option("-level",3,"What level to read images.")
 cmd:option("-cuda",1,"Use GPU?")
 cmd:option("-run",1,"Run main function.")
@@ -23,8 +23,9 @@ cmd:option("-display",0,"Display images.")
 cmd:option("-displayFreq",80,"Display images.")
 cmd:option("-displayGraph",0,"Display graph.")
 cmd:option("-displayGraphFreq",200,"Display graph frequency.")
-cmd:option("-lr",0.00003,"Learning rate.")
+cmd:option("-lr",0.003,"Learning rate.")
 cmd:option("-nFeats",16,"Number of features.")
+cmd:option("-nLayers",8,"Number of combinations of CNN/BN/AF/MP.")
 cmd:text()
 params = cmd:parse(arg)
 
@@ -75,13 +76,13 @@ function run()
 				return loadData.loadXY(params.nWindows,params.windowSize)
 			end,
 			function(Xy)
-				X,y = Xy["data"], Xy["score"]
-				train(X,y)
+				X,y,coverage = Xy["data"], Xy["score"], Xy["coverage"]
+				train(X,y,coverage)
 				display(X,y,outputs)
 				counter:add(y)
 			end
 			)
-			if count == displayFreq then print(counter) end
+			if count % params.displayFreq ==0 then print(counter) end
 
 	end
 

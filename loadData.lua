@@ -1,5 +1,6 @@
 csv = require "csv"
 require "paths"
+models = require "models"
 
 loadData = {}
 
@@ -49,13 +50,19 @@ end
 
 function loadData.loadXY(nWindows,windowSize)
 	if currentObs == nil then currentObs = 1 end
-	local currentTable = allPaths[currentObs]
+	currentTable = allPaths[torch.random(#allPaths)]
 	local nObsT = csv.length(currentTable[1])
 	local tensors = {}
 	local Xy = {}
 	for i = 1, nWindows do
 		 local imgPath = currentTable[1][torch.random(nObsT)] -- Draw random int to select window 
 		 local img = image.loadJPG(imgPath)
+		 imgDim = img:size(3)
+		 if printedImgSizes == nil then
+			print("==> Image size")
+		 	print(img:size())
+			printedImgSizes = {}
+		end
 		 local img = loadData.augmentCrop(img, windowSize)
 		 tensors[i] = img:reshape(1,3,windowSize,windowSize)
 	end
@@ -66,6 +73,7 @@ function loadData.loadXY(nWindows,windowSize)
 	Xy["score"] = currentTable[2]/4 
 	Xy["percScore"] = currentTable[3]/100 -- Normalize
 	Xy["caseNo"] = currentTable[4] 
+	Xy["coverage"] = params.nWindows*(torch.pow(params.windowSize,2)/torch.pow(imgDim,2))/#currentTable[1]
 
 	if currentObs == #allPaths then 
 		currentObs = 1
@@ -78,7 +86,7 @@ end
 
 function loadData.main(display,viewAug)
 
-	local params = {}
+	params = {}
 	params.windowSize = 300
 	if viewAug == 1 then 
 		params.nWindows = 1
@@ -87,11 +95,15 @@ function loadData.main(display,viewAug)
 	end
 
 	params.level = 3 
+	params.nFeats = 16
+	params.nLayers = 6 
 
-	if x== nil then
+	model = models.model1()
+
+	if init == nil then
 		require "image"
 		loadData.init(1,1,params.level)
-		x = "Not nil"
+		init = "Not nil"
 	end
 
 	Xy = loadData.loadXY(params.nWindows,params.windowSize)
