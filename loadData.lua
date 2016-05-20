@@ -51,6 +51,8 @@ function loadData.augmentCrop(img,windowSize)
 	end
 	maxX = img:size(3) - windowSize
 	maxY = img:size(2) - windowSize
+
+	--- Try scaling ---
 	
 	return img:narrow(2,torch.random(maxY),windowSize):narrow(3,torch.random(maxX),windowSize) --cropped 
 end

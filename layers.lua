@@ -18,10 +18,14 @@ function layers.add_bn(model,nFeats)
 	return model:add(nn.SpatialBatchNormalization(nFeats))
 end
 
-function layers.add_cnn(model,cnn_layer_no)
+function layers.add_cnn(model,cnn_layer_no,sameSize)
     --First check to see if we are using the first layer;
     if cnn_layer_no > 1 then
-	input_size0 = cnn_filters[cnn_layer_no-1]
+	    if sameSize == 1 then
+		input_size0 = cnn_filters[cnn_layer_no] -- for back to back convolutions
+            else
+		input_size0 = cnn_filters[cnn_layer_no-1]
+	    end
     else 
 	input_size0 = 3 --RGB
     end
