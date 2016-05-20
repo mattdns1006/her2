@@ -2,11 +2,13 @@
 losses = {}
 count = count or 1 
 local countPrint = 20
+require "nn"
 
 function train(inputs,y,coverage)
 
 	if i == nil then
 		if model then parameters,gradParameters = model:getParameters() end
+		ma = MovingAverage.new(params.ma)
 	end
 	
 	function feval(x)
@@ -19,6 +21,7 @@ function train(inputs,y,coverage)
 			target = torch.zeros(params.nWindows + 1):fill(y):cuda()
 			--y = y:cuda()
 			
+
 		end
 
 		outputs = model:forward(inputs)
@@ -46,9 +49,12 @@ function train(inputs,y,coverage)
 
 		lossesT = torch.Tensor(losses)
 		print(string.format("Count %d ==> Target = %f, prediciton %f, current loss %f, ma loss %f, coverage %f.",count, target:mean(), outputs:mean(), loss, lossesT[{{-countPrint,-1}}]:mean(),coverage))
-		if params.displayGraph == 1 and count % params.displayGraphFreq ==0 then 
-			t = torch.range(1,lossesT:size(1))
-			gnuplot.plot({"Training loss",t,lossesT})
+
+		if count > params.ma and params.displayGraph == 1 and count % params.displayGraphFreq ==0 then 
+			local MA = ma:forward(lossesT)
+			MA:resize(MA:size(1))
+			local t = torch.range(1,MA:size(1))
+			gnuplot.plot({"Training loss ma of " .. params.ma ,t,MA})
 		end
 		collectgarbage()
 	end

@@ -8,6 +8,7 @@ require "xlua"
 require "optim"
 require "gnuplot"
 
+dofile("movingAverage.lua")
 
 -- Command line options
 cmd = torch.CmdLine()
@@ -23,7 +24,8 @@ cmd:option("-display",0,"Display images.")
 cmd:option("-displayFreq",80,"Display images.")
 cmd:option("-displayGraph",0,"Display graph.")
 cmd:option("-displayGraphFreq",200,"Display graph frequency.")
-cmd:option("-lr",0.0003,"Learning rate.")
+cmd:option("-ma",20,"Moving average.")
+cmd:option("-lr",0.003,"Learning rate.")
 cmd:option("-nFeats",16,"Number of features.")
 cmd:option("-nLayers",8,"Number of combinations of CNN/BN/AF/MP.")
 cmd:text()
@@ -46,7 +48,7 @@ function display(X,y,outputs)
 	if params.display == 1 then 
 		if imgDisplay == nil then 
 			local initPic = torch.range(1,torch.pow(params.windowSize,2),1):reshape(params.windowSize,params.windowSize)
-			imgDisplay = image.display{image=initPic, zoom=1, offscreen=false}
+			imgDisplay = image.display{image=initPic, zoom=2, offscreen=false}
 		end
 		if count % params.displayFreq == 0 then 
 			image.display{image = X, win = imgDisplay, legend = "Truth ".. y .." prediction ".. outputs[1]}

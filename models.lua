@@ -2,7 +2,7 @@ layers = require "layers"
 
 models = {}
 
-function ConvInit(name,block)
+local function ConvInit(name,block)
 	for k,v in pairs(block:findModules(name)) do
 		local n = v.kW*v.kH*v.nOutputPlane
 		v.weight:normal(0,math.sqrt(2/n))
@@ -17,14 +17,14 @@ function ConvInit(name,block)
 	end
 end
 
-function BNInit(name,block)
+local function BNInit(name,block)
 	for k,v in pairs(block:findModules(name)) do
 		v.weight:fill(1)
 		v.bias:zero()
 	end
 end
 
-function linearInit(name)
+local function linearInit(name)
 	for k,v in pairs(model:findModules('nn.Linear')) do
 	      v.bias:zero()
 	end

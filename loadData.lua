@@ -38,10 +38,17 @@ end
 function loadData.augmentCrop(img,windowSize)
 	assert(windowSize<img:size(3),string.format("Window size %d is bigger than image size of %d.",
 		windowSize,img:size(3)))
-	--angle = torch.uniform(2)
-	--img = image.rotate(img,angle,"bilinear") 
-	--local hMid, wMid = img:size(2)/2, img:size(3)/2 -- middle
-	--local hStart, wStart = hMid - windowSize/2, wMid - windowSize/2
+	-- Random  flips
+	local randInt = torch.random(4)
+	if randInt == 1 then	
+	elseif randInt == 2 then
+		image.vflip(img,img)
+	elseif randInt == 3 then
+		image.hflip(img,img)
+	elseif randInt == 4 then
+		image.vflip(img,img)
+		image.hflip(img,img)
+	end
 	maxX = img:size(3) - windowSize
 	maxY = img:size(2) - windowSize
 	
@@ -50,7 +57,11 @@ end
 
 function loadData.loadXY(nWindows,windowSize)
 	if currentObs == nil then currentObs = 1 end
-	currentTable = allPaths[torch.random(#allPaths)]
+	if params.train == 1 then
+		currentTable = allPaths[torch.random(#allPaths)] -- Train is stochastic
+	else
+		currentTable = allPaths[currentObs] --Test is deterministic
+	end
 	local nObsT = csv.length(currentTable[1])
 	local tensors = {}
 	local Xy = {}
@@ -58,11 +69,6 @@ function loadData.loadXY(nWindows,windowSize)
 		 local imgPath = currentTable[1][torch.random(nObsT)] -- Draw random int to select window 
 		 local img = image.loadJPG(imgPath)
 		 imgDim = img:size(3)
-		 if printedImgSizes == nil then
-			print("==> Image size")
-		 	print(img:size())
-			printedImgSizes = {}
-		end
 		 local img = loadData.augmentCrop(img, windowSize)
 		 tensors[i] = img:reshape(1,3,windowSize,windowSize)
 	end
