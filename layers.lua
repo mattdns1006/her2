@@ -50,6 +50,42 @@ function layers.add_fmp_explicit(model,layer_no)
            fmp_output_w[layer_no],fmp_output_h[layer_no]))
 end
 
+function layers.ConvInit(name,block)
+	for k,v in pairs(block:findModules(name)) do
+		local n = v.kW*v.kH*v.nOutputPlane
+		v.weight:normal(0,math.sqrt(2/n))
+		--[[
+		if cudnn.version >= 4000 then
+		v.bias = nil
+		v.gradBias = nil
+		else
+		v.bias:zero()
+		]]--
+		v.bias:zero()
+	end
+end
+
+function layers.BNInit(name,block)
+	for k,v in pairs(block:findModules(name)) do
+		v.weight:fill(1)
+		v.bias:zero()
+	end
+end
+
+function layers.linearInit(block)
+	for k,v in pairs(block:findModules('nn.Linear')) do
+	      v.bias:zero()
+	end
+end
+
+function layers.init(block)
+	layers.ConvInit('cudnn.SpatialConvolution',block)
+	layers.ConvInit('nn.SpatialConvolution',block)
+	layers.BNInit('fbnn.SpatialBatchNormalization',block)
+	layers.BNInit('cudnn.SpatialBatchNormalization',block)
+	layers.BNInit('nn.SpatialBatchNormalization',block)
+	layers.linearInit(block)
+end
 
 return layers
 
