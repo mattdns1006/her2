@@ -58,8 +58,9 @@ end
 
 criterion = nn.MSECriterion()
 models = require "models"
-model = models.model1()
---model = models.resNet1()
+resModels = require "resModels"
+--model = models.model1()
+model = resModels.resNet1()
 
 if params.cuda == 1 then
 	print("==> Placing model on GPU")

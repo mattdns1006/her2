@@ -80,12 +80,12 @@ function models.main()
 	params.nWindows = 10 
 	params.nLayers = 7 
 	model = models.model1():cuda()
-	resModel = resModels.ResNet1():cuda()
-	print(model)
+	resModel = resModels.resNet1():cuda()
+	--print(model)
 	input = torch.randn(params.nWindows,3,params.windowSize,params.windowSize):cuda()
 	print(input:size())
 
-	o = model:forward(input)
+	o = resModel:forward(input)
 	print(o:size())
 end
 
