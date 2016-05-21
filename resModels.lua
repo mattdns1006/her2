@@ -106,16 +106,17 @@ function models.resNet()
 	 [18]  = {{2, 2, 2, 2}, 512, basicblock},
 	 [34]  = {{3, 4, 6, 3}, 512, basicblock},
 	 [50]  = {{3, 4, 6, 3}, 2048, bottleneck},
+	 --[50]  = {{3, 4, 6, 3}, 2048, basicblock},
 	 [101] = {{3, 4, 23, 3}, 2048, bottleneck},
 	 [152] = {{3, 8, 36, 3}, 2048, bottleneck},
 	}
 
 	assert(cfg[depth], 'Invalid depth: ' .. tostring(depth))
 	def, nFeatures, block = table.unpack(cfg[depth])
-	iChannels = 16 
+	iChannels = params.nFeats 
 
 	-- The ResNet HER2 model
-	model:add(Convolution(3,16,2,2,2,2,3,3))
+	model:add(Convolution(3,params.nFeats,2,2,2,2,3,3))
 	model:add(SBatchNorm(params.nFeats))
 	model:add(ReLU(true))
 	model:add(Max(3,3,2,2,1,1))
