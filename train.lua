@@ -57,6 +57,11 @@ function train(inputs,y,coverage)
 			gnuplot.plot({"Training loss ma of " .. params.ma ,t,MA})
 		end
 		collectgarbage()
+       	end
+	if count % params.lrChange == 0 then
+		local clr = params.lr
+		params.lr = params.lr/params.lrDecay
+		print(string.format("Learning rate dropping from %f ====== > %f. ",clr,params.lr))
 	end
 	xlua.progress(count,10000)
 	count = count + 1

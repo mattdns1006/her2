@@ -19,14 +19,10 @@ local ReLU = nn.ReLU
 local Max = nn.SpatialMaxPooling
 local SBatchNorm = nn.SpatialBatchNormalization
 
-function models.resNet1()
-	opt = {}
-	opt.depth = 50 
-	opt.shortcut = "C"
-	opt.dataset = "her2"
-	opt.shortcutType = "C"
-   local depth = opt.depth
-   local shortcutType = opt.shortcutType or 'B'
+function models.resNet()
+
+   local depth = params.depth
+   local shortcutType = params.shortcutType or 'B'
    local iChannels 
 
    -- The shortcut layer is either identity or 1x1 convolution
@@ -120,13 +116,14 @@ function models.resNet1()
 
 	-- The ResNet HER2 model
 	model:add(Convolution(3,16,2,2,2,2,3,3))
-	model:add(SBatchNorm(16))
+	model:add(SBatchNorm(params.nFeats))
 	model:add(ReLU(true))
 	model:add(Max(3,3,2,2,1,1))
-	model:add(layer(block, 16, def[1], 2))
-	model:add(layer(block, 16, def[2], 2))
-	model:add(layer(block, 16, def[3], 2))
-	model:add(Convolution(16*def[2],6,2,2,1,1,1,1))
+	model:add(layer(block, params.nFeats, def[1], 2))
+	model:add(layer(block, params.nFeats, def[2], 2))
+	model:add(layer(block, params.nFeats, def[3], 2))
+	model:add(Convolution(params.nFeats*def[2],12,2,2,1,1,1,1))
+	model:add(SBatchNorm(12))
 	--model:add(layer(block, 16, def[4], 2))
 	model:add(Avg(7, 7, 1, 1))
 	--model:add(nn.View(nFeatures):setNumInputDims(3))
@@ -160,11 +157,12 @@ function models.resNet1()
 	splitter:add(oneByOne)
 	model:add(splitter)
 	model:add(nn.JoinTable(1))
-	model:add(nn.Sigmoid())
+	model:add(nn.HardTanh())
+	--model:add(nn.Sigmoid())
 
         layers.init(model)
 
-        if opt.cudnn == 'deterministic' then
+        if params.cudnn == 'deterministic' then
            model:apply(function(m)
               if m.setMode then m:setMode(1,1,1) end
            end)

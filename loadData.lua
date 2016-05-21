@@ -78,7 +78,7 @@ function loadData.loadXY(nWindows,windowSize)
 	Xy["data"] = torch.cat(tensors,1) 
 	--Xy["score"] = loadData.oneHot(currentTable[2],4) -- categorical way
 	--Xy["score"] = currentTable[2]/2 -1 
-	Xy["score"] = currentTable[2]/4 
+	Xy["score"] = currentTable[2]/3 
 	Xy["percScore"] = currentTable[3]/100 -- Normalize
 	Xy["caseNo"] = currentTable[4] 
 	Xy["coverage"] = params.nWindows*(torch.pow(params.windowSize,2)/torch.pow(imgDim,2))/#currentTable[1]
