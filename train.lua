@@ -18,10 +18,11 @@ function train(inputs,y,coverage)
 		if params.cuda == 1 then
 			inputs = inputs:cuda()
 			--y = torch.DoubleTensor{y}:cuda()
-			target = torch.zeros(params.nWindows + 1):fill(y):cuda()
+			target = torch.zeros(params.nWindows + 1,2)
+			target[{{},{1}}]:fill(y["score"])
+			target[{{},{2}}]:fill(y["percScore"])
+			target = target:cuda()
 			--y = y:cuda()
-			
-
 		end
 
 		outputs = model:forward(inputs)
@@ -42,13 +43,15 @@ function train(inputs,y,coverage)
 		print(model:parameters()[1][1])
 		print("==> Input size")
 		print(inputs:size())
-		print("==> Output size")
-		print(target:size())
+		print("==> Output")
+		print(target)
 	end
 	if count % countPrint == 0 then
 
 		lossesT = torch.Tensor(losses)
-		print(string.format("Count %d ==> Target = %f, prediciton %f, current loss %f, ma loss %f, coverage %f.",count, target:mean(), outputs:mean(), loss, lossesT[{{-countPrint,-1}}]:mean(),coverage))
+		local targets = target:mean(1):squeeze()
+		local predictions = outputs:mean(1):squeeze()
+		print(string.format("Count %d ==> Targets = {%f, %f}, prediciton {%f, %f}, current loss %f, ma loss %f, coverage %f.",count, targets[1], targets[2], predictions[1], predictions[2], loss, lossesT[{{-countPrint,-1}}]:mean(),coverage))
 
 		if count > params.ma and params.displayGraph == 1 and count % params.displayGraphFreq ==0 then 
 			local MA = ma:forward(lossesT)

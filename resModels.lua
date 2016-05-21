@@ -135,24 +135,25 @@ function models.resNet()
 	print(outputSize)
 	local nOutputsDense = outputSize[2]*outputSize[3]*outputSize[4] 
 	local feats = 50
+	local nTargets = 2
 
 	splitter = nn.ConcatTable()
 	all,  oneByOne = nn.Sequential(),nn.Sequential()
 	local function findAf(model) return model:add(nn.Sigmoid()) end
 
 	-- All
-	all:add(nn.View(nOutputsDense*params.nWindows))
+	all:add(nn.View(1,nOutputsDense*params.nWindows))
 	all:add(nn.Linear(nOutputsDense*params.nWindows,feats))
 	layers.add_af(all)
 	all:add(nn.Linear(feats,feats))
 	layers.add_af(all)
-	all:add(nn.Linear(feats,1))
+	all:add(nn.Linear(feats,nTargets))
 	--findAf(oneByOne)
 
 	-- One by one channel
 	oneByOne:add(nn.View(nOutputsDense))
 	--oneByOne:add(nn.BatchNormalization(nOutputsDense))
-	oneByOne:add(nn.Linear(nOutputsDense,1))
+	oneByOne:add(nn.Linear(nOutputsDense,nTargets))
 
 	splitter:add(all)
 	splitter:add(oneByOne)

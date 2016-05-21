@@ -61,7 +61,7 @@ function display(X,y,outputs)
 			imgDisplay = image.display{image=initPic, zoom=2, offscreen=false}
 		end
 		if count % params.displayFreq == 0 then 
-			image.display{image = X, win = imgDisplay, legend = "Truth ".. y .." prediction ".. outputs[1]}
+			image.display{image = X, win = imgDisplay, legend = "Truth ".. y["score"] .." prediction ".. outputs[{{},{1}}]:mean()}
 		end
 	end
 end
@@ -94,7 +94,8 @@ function run()
 				return loadData.loadXY(params.nWindows,params.windowSize)
 			end,
 			function(Xy)
-				X,y,coverage = Xy["data"], Xy["score"], Xy["coverage"]
+				y = {}
+				X,y.score,y.percScore, coverage = Xy["data"], Xy["score"], Xy["percScore"], Xy["coverage"]
 				train(X,y,coverage)
 				display(X,y,outputs)
 				counter:add(y)
