@@ -157,7 +157,7 @@ function models.resNet()
 	splitter:add(oneByOne)
 	model:add(splitter)
 	model:add(nn.JoinTable(1))
-	model:add(nn.HardTanh())
+	--model:add(nn.HardTanh())
 	--model:add(nn.Sigmoid())
 
         layers.init(model)

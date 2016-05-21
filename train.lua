@@ -54,7 +54,8 @@ function train(inputs,y,coverage)
 			local MA = ma:forward(lossesT)
 			MA:resize(MA:size(1))
 			local t = torch.range(1,MA:size(1))
-			gnuplot.plot({"Training loss ma of " .. params.ma ,t,MA})
+			gnuplot.plot({"Training loss ma of " .. params.ma.. "current mean
+			of " .. MA:mean()..".",t,MA})
 		end
 		collectgarbage()
        	end
