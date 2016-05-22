@@ -15,11 +15,15 @@ cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
 cmd:option("-nThreads",10,"Number of threads to load data.")
-cmd:option("-nWindows",10,"Number of windows/ROI.")
+cmd:option("-nWindows",20,"Number of windows/ROI.")
 cmd:option("-windowSize",256,"Size of ROI.")
 cmd:option("-level",2,"What level to read images.")
 cmd:option("-cuda",1,"Use GPU?")
 cmd:option("-run",1,"Run main function.")
+cmd:option("-test",0,"Train or test.")
+cmd:option("-modelName","resNet1.model","Model name.")
+cmd:option("-loadModel",1,"Load model.")
+cmd:option("-nTestPreds",10,"Number of different inputs to make predictions on in test.")
 
 cmd:option("-display",0,"Display images.")
 cmd:option("-displayFreq",80,"Display images.")
@@ -61,14 +65,19 @@ function display(X,y,outputs)
 			imgDisplay = image.display{image=initPic, zoom=2, offscreen=false}
 		end
 		if count % params.displayFreq == 0 then 
-			image.display{image = X, win = imgDisplay, legend = "Truth ".. y["score"] .." prediction ".. outputs[{{},{1}}]:mean()}
+			image.display{image = X, win = imgDisplay, legend = "Truth ".. y["score"] .. ", ".. y["percScore"].." predictions ".. outputs[{{},{1}}]:mean().. ", ".. outputs[{{},{2}}]:mean()}
 		end
 	end
 end
 
 criterion = nn.MSECriterion()
 resModels = require "resModels"
-model = resModels.resNet()
+if params.loadModel == 1 then
+	print("==> Loading model")
+	model = torch.load(params.modelName)
+else
+	model = resModels.resNet()
+end
 
 if params.cuda == 1 then
 	print("==> Placing model on GPU")
@@ -95,9 +104,13 @@ function run()
 			end,
 			function(Xy)
 				y = {}
-				X,y.score,y.percScore, coverage = Xy["data"], Xy["score"], Xy["percScore"], Xy["coverage"]
-				train(X,y,coverage)
-				display(X,y,outputs)
+				inputs, target, y.score, y.percScore, coverage, caseNo = Xy["data"], Xy["target"], Xy["score"], Xy["percScore"], Xy["coverage"], Xy["caseNo"]
+				if params.test == 0 then
+					train(inputs,target,caseNo,coverage)
+				else
+					test(inputs,target,caseNo)
+				end
+				display(inputs,y,outputs)
 				counter:add(y)
 			end
 			)

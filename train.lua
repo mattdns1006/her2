@@ -1,10 +1,8 @@
-
 losses = {}
 count = count or 1 
 local countPrint = 20
-require "nn"
 
-function train(inputs,y,coverage)
+function train(inputs,target,caseNo,coverage)
 
 	if i == nil then
 		if model then parameters,gradParameters = model:getParameters() end
@@ -14,18 +12,7 @@ function train(inputs,y,coverage)
 	function feval(x)
 		if x ~= parameters then parameters:copy(x) end
 		gradParameters:zero()
-
-		if params.cuda == 1 then
-			inputs = inputs:cuda()
-			--y = torch.DoubleTensor{y}:cuda()
-			target = torch.zeros(params.nWindows + 1,2)
-			target[{{},{1}}]:fill(y["score"])
-			target[{{},{2}}]:fill(y["percScore"])
-			target = target:cuda()
-			--y = y:cuda()
-		end
-
-		outputs = model:forward(inputs)
+		outputs = model:forward(inputs[1])
 		loss = criterion:forward(outputs,target)
 		losses[count] = loss
 		dLoss_dO = criterion:backward(outputs,target)
@@ -36,19 +23,19 @@ function train(inputs,y,coverage)
 
 	_, batchLoss = optimMethod(feval,parameters,optimState)
 
-
-
 	if count % params.displayGraphFreq == 0 then
 		print("==> Some parameters")
 		print(model:parameters()[1][1])
 		print("==> Input size")
 		print(inputs:size())
-		print("==> Output")
+		print("==> Target")
 		print(target)
+		print("==> Prediction")
+		print(outputs)
 	end
 	if count % countPrint == 0 then
 
-		lossesT = torch.Tensor(losses)
+		local lossesT = torch.Tensor(losses)
 		local targets = target:mean(1):squeeze()
 		local predictions = outputs:mean(1):squeeze()
 		print(string.format("Count %d ==> Targets = {%f, %f}, prediciton {%f, %f}, current loss %f, ma loss %f, coverage %f.",count, targets[1], targets[2], predictions[1], predictions[2], loss, lossesT[{{-countPrint,-1}}]:mean(),coverage))
@@ -62,11 +49,35 @@ function train(inputs,y,coverage)
 		collectgarbage()
        	end
 	if count % params.lrChange == 0 then
+		print("==> Saving model " .. params.modelName .. ".")
+		torch.save(params.modelName,model)
 		local clr = params.lr
 		params.lr = params.lr/params.lrDecay
 		print(string.format("Learning rate dropping from %f ====== > %f. ",clr,params.lr))
 	end
 	xlua.progress(count,10000)
+	count = count + 1
+end
+
+function test(inputs,target,caseNo)
+
+	if testLosses == nil then
+		testLosses = {}
+	end
+
+	print(string.rep("=",100))
+	print(string.rep("=",100))
+	print("Case number ".. caseNo..", with target output of ==>")
+	print(target)
+	local predictions = {}
+	for i= 1, params.nTestPreds do
+		outputs = model:forward(inputs[i])
+		print(outputs)
+		loss = criterion:forward(outputs,target)
+		print(string.format("Case number %d with loss of %f",caseNo,loss))
+	end
+
+	losses[count] = loss
 	count = count + 1
 end
 
