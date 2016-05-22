@@ -63,22 +63,30 @@ function test(inputs,target,caseNo)
 
 	if testLosses == nil then
 		testLosses = {}
+
 	end
 
 	print(string.rep("=",100))
 	print(string.rep("=",100))
 	print("Case number ".. caseNo..", with target output of ==>")
-	print(target)
-	local predictions = {}
+	--print(target)
+	local averagePred = {}
 	for i= 1, params.nTestPreds do
 		outputs = model:forward(inputs[i])
-		print(outputs)
+		averagePred[i] = outputs
 		loss = criterion:forward(outputs,target)
-		print(string.format("Case number %d with loss of %f",caseNo,loss))
+		--print(string.format("Case number %d with loss of %f",caseNo,loss))
 	end
+	local addTable = nn.CAddTable():cuda()
+	averagePred = addTable:forward(averagePred)/params.nTestPreds
+	averageLoss = criterion:forward(averagePred,target)
+	print("==> Average prediction and loss")
+	--print(averagePred)
+	print(averageLoss)
 
 	losses[count] = loss
 	count = count + 1
+	collectgarbage()
 end
 
 

@@ -81,6 +81,7 @@ function loadData.loadXY(nWindows,windowSize)
 			currentObs = 1
 			print("Thread " .. tid .. " is finished. Sleeping...")
 			finishedTest = true
+			sys.sleep(100000)
 		else 
 			currentObs = currentObs + 1	
 		end

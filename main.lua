@@ -23,7 +23,7 @@ cmd:option("-run",1,"Run main function.")
 cmd:option("-test",0,"Train or test.")
 cmd:option("-modelName","resNet1.model","Model name.")
 cmd:option("-loadModel",1,"Load model.")
-cmd:option("-nTestPreds",10,"Number of different inputs to make predictions on in test.")
+cmd:option("-nTestPreds",20,"Number of different inputs to make predictions on in test.")
 
 cmd:option("-display",0,"Display images.")
 cmd:option("-displayFreq",80,"Display images.")
