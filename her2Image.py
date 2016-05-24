@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[6]:
 
 import openslide
 import cv2
@@ -20,60 +20,11 @@ from pylab import rcParams
 rcParams['figure.figsize'] = 10, 10
 
 
-# In[2]:
+# In[7]:
 
 """
 Helper functions.
 """
-
-def factors(n,k):   
-    """
-    Returns kth largest factor of an int. Needed for finding equally sized grids in our image.
-    """
-    facs = reduce(list.__add__, 
-                ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0))
-    #print("Factors of %d are :" % n, facs)
-    return sorted(facs)[-k], facs
-
-
-def enoughFactors(arr,minNoFactors):
-    
-    """
-    Pads image dimensions to make dimensions have more factors if needed.
-    """
-
-    (_,rowFactors),(_,colFactors) = map(lambda dim: factors(dim,0),arr.shape)
-    enoughFactors = (len(rowFactors) >= minNoFactors) and (len(colFactors) >= minNoFactors)
-    while enoughFactors == False:
-        if len(rowFactors) < minNoFactors:
-            arr = np.pad(arr,((2,0),(0,0)),"reflect")
-            (_,rowFactors),(_,colFactors) = map(lambda dim: factors(dim,0),arr.shape)
-
-        if len(colFactors) < minNoFactors:
-            arr = np.pad(arr,((0,0),(2,0)),"reflect")
-            (_,rowFactors),(_,colFactors) = map(lambda dim: factors(dim,0),arr.shape)
-        
-        enoughFactors = (len(rowFactors) >= minNoFactors) and (len(colFactors) >= minNoFactors)
-        
-    return arr
-
-def chosenFactor(arr,factors):
-    """
-    Given array and set of factors of the dimensions, returns factors which are most similar aspect ratio wise
-    to the array.
-    """
-    rowFactors,colFactors = factors
-    chosenWindow = 10000
-    for i in rowFactors:
-        for j in colFactors:
-            shape = arr.shape[0]/i,arr.shape[1]/j
-            aspectRatioWin = float(shape[1])/shape[0]
-            aspectRatioImg = float(arr.shape[1])/arr.shape[0]
-            aspectRatioDiff = aspectRatioWin - aspectRatioImg
-            if aspectRatioDiff < chosenWindow:
-                chosenWindow = (i,j)
-
-    return chosenWindow
 
 def closestLevel(levelDims,w):
     differences = map(lambda dim: (abs(dim[1]-w), abs(dim[1]-w)),levelDims)
@@ -146,14 +97,14 @@ def removeFiles(path):
         os.remove(f)
 
 
-# In[7]:
+# In[8]:
 
 """
 Main image object.
 """
 
 class her2Image():
-    def __init__(self,caseNumber,minNoFactors,threshArea,windowSize,blackThresh,blurSize):
+    def __init__(self,caseNumber,minNoFactors,threshArea,upscaleWindowSize,upscaleLevel,blackThresh,blurSize):
         
         case = groundTruth.loc[groundTruth.CaseNo==caseNumber]
         self.score, self.percScore = case["HeR2 SCORE"].values[0], case["PERCENTAGE CELLS WITH COMPLETE MEMBRANE STAINING IRRESPECTIVE OF INTENSITY"].values[0]
@@ -166,10 +117,7 @@ class her2Image():
         self.level = 6
         self.lowResDims = self.her2.level_dimensions[self.level] #3 is arbitrary but works
         self.lowResRGB = np.asarray(self.her2.read_region((0,0),self.level,(self.lowResDims[0],self.lowResDims[1]))).copy() 
-        
-        #plt.imshow(self.lowResRGB)
-        #plt.show()
-        
+    
         #Remove black
         black = np.logical_and.reduce((self.lowResRGB[:,:,0] > blackThresh,
                                        self.lowResRGB[:,:,1] > blackThresh,
@@ -187,12 +135,10 @@ class her2Image():
         img = cv2.GaussianBlur(self.lowRes,(blurSize,blurSize),0)
         ret,self.thresh = cv2.threshold(img,mstats.mode(img,axis=None)[0]-4,255,1)
         
-        # Padd lowRes image and thresholded to make factors 
-        self.lowRes, self.thresh = [pad(arr,windowSize) for arr in (self.lowRes, self.thresh)]
-        
-        (_,rowFactors),(_,colFactors) = map(lambda dim: factors(dim,8),self.lowRes.shape)
-        nrows, ncols = chosenFactor(self.lowRes,(rowFactors,colFactors))
-        nrows, ncols = windowSize, windowSize
+        # Padd lowRes image and thresholded to make factors
+        nrows = ncols = upscaleWindowSize/np.power(2,self.level-upscaleLevel)
+        self.lowRes, self.thresh = [pad(arr,nrows) for arr in (self.lowRes, self.thresh)]
+
 
         coordsX,coordsY = np.indices((self.lowRes.shape[0],self.lowRes.shape[1]))
         blocksX,blocksY = blockshaped(coordsX,nrows,ncols),blockshaped(coordsY,nrows,ncols)
@@ -223,7 +169,7 @@ class her2Image():
             
 
 
-# In[27]:
+# In[9]:
 
 numberOfRegions = []
 imagesWithLines = [84,82,35]
@@ -231,12 +177,12 @@ if __name__ == "__main__":
 
     # Hyperparams
     minNoFactors = 10
-    threshArea = 0.3
-    upscaleLevel= 1
+    threshArea = 0.6
+    upscaleLevel= 4
     save = 1
     show = 1
     displayProb = 0.00
-    windowSize = 108
+    upscaleWindowSize = np.power(2,12-upscaleLevel)
     blackThresh = 120
     blurSize = 47
     
@@ -254,8 +200,8 @@ if __name__ == "__main__":
     
     
     # Generate ROIs and saave jpg
-    for caseNo in groundTruth.CaseNo.values[:]:
-    #for caseNo in imagesWithLines:
+    #for caseNo in groundTruth.CaseNo.values[:]:
+    for caseNo in imagesWithLines:
         
         nRegions = 0
         
@@ -265,7 +211,7 @@ if __name__ == "__main__":
             if not os.path.exists(newpath):
                 os.makedirs(newpath)
 
-        eg = her2Image(caseNo,minNoFactors,threshArea,windowSize,blackThresh,blurSize)
+        eg = her2Image(caseNo,minNoFactors,threshArea,upscaleWindowSize,upscaleLevel,blackThresh,blurSize)
         print("Image %d with score of %d, percScore of %d." % (caseNo,eg.score,eg.percScore))
         regions = eg.regionGen(upscaleLevel) # region object
         regionNo = 0
@@ -286,7 +232,7 @@ if __name__ == "__main__":
         dims.append(caseDims)
         eg.show()
         numberOfRegions.append(nRegions)
-        print("Number of regions generated = %d with dimension %d x %d x 4." % (nRegions,caseDims[0][0],caseDims[0][1]))
+        print("Number of regions generated at level %d = %d with dimension %d x %d x 4." % (eg.level,nRegions,caseDims[0][0],caseDims[0][1]))
 
 print("Smallest y: ", min([x[0][0] for x in dims]))
 print("Smallets x: ", min([x[0][1] for x in dims]))
@@ -294,8 +240,5 @@ print("Smallets x: ", min([x[0][1] for x in dims]))
 print("Biggest y: ", max([x[0][0] for x in dims]))
 print("Biggest x: ", max([x[0][1] for x in dims]))
 
-
-# In[ ]:
-
-
+print("Number of regions generated: ",numberOfRegions)
 

@@ -14,22 +14,22 @@ dofile("movingAverage.lua")
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
-cmd:option("-nThreads",10,"Number of threads to load data.")
-cmd:option("-nWindows",20,"Number of windows/ROI.")
+cmd:option("-nThreads",13,"Number of threads to load data.")
+cmd:option("-nWindows",25,"Number of windows/ROI.")
 cmd:option("-windowSize",256,"Size of ROI.")
-cmd:option("-level",2,"What level to read images.")
+cmd:option("-level",3,"What level to read images.")
 cmd:option("-cuda",1,"Use GPU?")
 cmd:option("-run",1,"Run main function.")
 cmd:option("-test",0,"Train or test.")
 cmd:option("-modelName","resNet1.model","Model name.")
-cmd:option("-loadModel",1,"Load model.")
+cmd:option("-loadModel",0,"Load model.")
 cmd:option("-nTestPreds",20,"Number of different inputs to make predictions on in test.")
 
 cmd:option("-display",0,"Display images.")
 cmd:option("-displayFreq",80,"Display images.")
 cmd:option("-displayGraph",0,"Display graph.")
 cmd:option("-displayGraphFreq",200,"Display graph frequency.")
-cmd:option("-ma",50,"Moving average.")
+cmd:option("-ma",80,"Moving average.")
 
 cmd:option("-nFeats",16,"Number of features.")
 cmd:option("-nLayers",7,"Number of combinations of CNN/BN/AF/MP.")
@@ -39,11 +39,26 @@ cmd:option("-shortcut","C","Shortcut.")
 cmd:option("-dataset","her2","Dataset.")
 cmd:option("-shortcutType","C","Shortcut type.")
 
-cmd:option("-lr",0.0003,"Learning rate.")
+cmd:option("-lr",0.0006,"Learning rate.")
 cmd:option("-lrDecay",1.1,"Learning rate decay")
 cmd:option("-lrChange",400,"Learning rate change frequency.")
+cmd:option("-nIter",20000,"Number of iterations.")
 cmd:text()
 params = cmd:parse(arg)
+
+local level4winSize = 212
+local level4nWindows= 40 
+local levelParams = {
+
+	["0"] = {level4winSize*16,level4nWindows/16},
+	["1"] = {level4winSize*8,level4nWindows/8},
+	["2"] = {level4winSize*4,level4nWindows/4},
+	["3"] = {level4winSize*2,level4nWindows/2},
+	["4"] = {level4winSize*1,level4nWindows/1},
+
+}
+params.windowSize, params.nWindows = table.unpack(levelParams[tostring(params.level)])
+
 
 dofile("donkeys.lua")
 dofile("train.lua")
@@ -58,35 +73,35 @@ optimState = {
 optimMethod = optim.adam
 
 
-function display(X,y,outputs)
+function display(Xy)
 	if params.display == 1 then 
 		if imgDisplay == nil then 
 			local initPic = torch.range(1,torch.pow(params.windowSize,2),1):reshape(params.windowSize,params.windowSize)
 			imgDisplay = image.display{image=initPic, zoom=2, offscreen=false}
 		end
 		if count % params.displayFreq == 0 then 
-			image.display{image = X, win = imgDisplay, legend = "Truth ".. y["score"] .. ", ".. y["percScore"].." predictions ".. outputs[{{},{1}}]:mean().. ", ".. outputs[{{},{2}}]:mean()}
+			local title = string.format("Case number %d, Targets {%f,%f}, predictions {%f,%f}.", Xy.caseNo, Xy.score, Xy.percScore, 
+							outputs[{{},{1}}]:mean(), outputs[{{},{2}}]:mean())
+			image.display{image = Xy.data[1], win = imgDisplay, legend = title}
 		end
 	end
 end
 
 criterion = nn.MSECriterion()
 resModels = require "resModels"
+modelName = string.format("%s_%d_%d_%d_%d_%d",params.modelName, params.level, params.nWindows, params.windowSize, params.nFeats, params.nIter)
+print(string.format("Model %s, for level %d, with %d windows, %d features, %d window size (sqrt(area))",
+		    modelName,params.level, params.nWindows, params.nFeats, params.windowSize))
+
 if params.loadModel == 1 then
-	print("==> Loading model")
-	model = torch.load(params.modelName)
+	print("==> Loading model "..modelName..".")
+	model = torch.load(modelName)
 else
 	model = resModels.resNet()
 end
 
-if params.cuda == 1 then
-	print("==> Placing model on GPU")
-	model:cuda()
-	criterion:cuda()
-end
-
-print("==> model")
-print(model)
+if params.cuda == 1 then print("==> Placing model on GPU"); model:cuda(); criterion:cuda(); end
+print("==> model"); print(model);
 
 function checkModel()
 	input = torch.randn(params.nWindows,3,params.windowSize,params.windowSize):cuda()
@@ -110,11 +125,12 @@ function run()
 				else
 					test(inputs,target,caseNo)
 				end
-				display(inputs,y,outputs)
-				counter:add(y)
+				display(Xy)
+				counter:add(caseNo)
 			end
 			)
 			if count % params.displayGraphFreq ==0 then print(counter) end
+			if count == params.nIter then print("Finished training"); break; end
 
 	end
 

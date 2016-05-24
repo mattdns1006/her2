@@ -12,11 +12,11 @@ function train(inputs,target,caseNo,coverage)
 	function feval(x)
 		if x ~= parameters then parameters:copy(x) end
 		gradParameters:zero()
-		outputs = model:forward(inputs[1])
+		outputs = model:forward(inputs[1]) -- Only one input for training unlike testing
 		loss = criterion:forward(outputs,target)
 		losses[count] = loss
 		dLoss_dO = criterion:backward(outputs,target)
-		model:backward(inputs,dLoss_dO)
+		model:backward(inputs[1],dLoss_dO)
 
 		return	loss, gradParameters 
 	end
@@ -27,7 +27,7 @@ function train(inputs,target,caseNo,coverage)
 		print("==> Some parameters")
 		print(model:parameters()[1][1])
 		print("==> Input size")
-		print(inputs:size())
+		print(inputs[1]:size())
 		print("==> Target")
 		print(target)
 		print("==> Prediction")
@@ -49,8 +49,8 @@ function train(inputs,target,caseNo,coverage)
 		collectgarbage()
        	end
 	if count % params.lrChange == 0 then
-		print("==> Saving model " .. params.modelName .. ".")
-		torch.save(params.modelName,model)
+		print("==> Saving model " .. modelName .. ".")
+		torch.save(modelName,model)
 		local clr = params.lr
 		params.lr = params.lr/params.lrDecay
 		print(string.format("Learning rate dropping from %f ====== > %f. ",clr,params.lr))
@@ -68,20 +68,22 @@ function test(inputs,target,caseNo)
 
 	print(string.rep("=",100))
 	print(string.rep("=",100))
-	print("Case number ".. caseNo..", with target output of ==>")
-	--print(target)
+
 	local averagePred = {}
 	for i= 1, params.nTestPreds do
 		outputs = model:forward(inputs[i])
 		averagePred[i] = outputs
+		--print(averagePred[i])
 		loss = criterion:forward(outputs,target)
 		--print(string.format("Case number %d with loss of %f",caseNo,loss))
 	end
 	local addTable = nn.CAddTable():cuda()
 	averagePred = addTable:forward(averagePred)/params.nTestPreds
 	averageLoss = criterion:forward(averagePred,target)
+	print("Case number ".. caseNo..", with target output of ==>")
+	print(target:mean(1))
 	print("==> Average prediction and loss")
-	--print(averagePred)
+	print(averagePred:mean(1))
 	print(averageLoss)
 
 	losses[count] = loss
