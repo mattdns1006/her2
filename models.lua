@@ -75,11 +75,12 @@ end
 function models.main()
 	require "cunn"
 	params = {} 
-	params.windowSize = 256 
+	params.windowSize = 232
 	params.nFeats = 16
 	params.nWindows = 10 
 	params.nLayers = 7 
-	model = resModels.resNet1():cuda()
+	params.level = 4
+	model = resModels.resNet():cuda()
 	input = torch.randn(params.nWindows,3,params.windowSize,params.windowSize):cuda()
 	o = model:forward(input)
 	print(model)

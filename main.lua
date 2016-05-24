@@ -15,8 +15,8 @@ cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
 cmd:option("-nThreads",13,"Number of threads to load data.")
-cmd:option("-nWindows",25,"Number of windows/ROI.")
-cmd:option("-windowSize",256,"Size of ROI.")
+cmd:option("-nWindows",40,"Number of windows at level 4.")
+--cmd:option("-windowSize",256,"Size of ROI.")
 cmd:option("-level",3,"What level to read images.")
 cmd:option("-cuda",1,"Use GPU?")
 cmd:option("-run",1,"Run main function.")
@@ -46,8 +46,8 @@ cmd:option("-nIter",20000,"Number of iterations.")
 cmd:text()
 params = cmd:parse(arg)
 
-local level4winSize = 212
-local level4nWindows= 40 
+local level4winSize = 216 
+local level4nWindows= params.nWindows 
 local levelParams = {
 
 	["0"] = {level4winSize*16,level4nWindows/16},
@@ -90,8 +90,8 @@ end
 criterion = nn.MSECriterion()
 resModels = require "resModels"
 modelName = string.format("%s_%d_%d_%d_%d_%d",params.modelName, params.level, params.nWindows, params.windowSize, params.nFeats, params.nIter)
-print(string.format("Model %s, for level %d, with %d windows, %d features, %d window size (sqrt(area))",
-		    modelName,params.level, params.nWindows, params.nFeats, params.windowSize))
+print(string.format("Model %s, for level %d,  %d features, with %d windows,%d window size (sqrt(area))",
+		    modelName,params.level, params.nFeats, params.nWindows, params.windowSize))
 
 if params.loadModel == 1 then
 	print("==> Loading model "..modelName..".")
@@ -101,7 +101,7 @@ else
 end
 
 if params.cuda == 1 then print("==> Placing model on GPU"); model:cuda(); criterion:cuda(); end
-print("==> model"); print(model);
+print("==> model"); 
 
 function checkModel()
 	input = torch.randn(params.nWindows,3,params.windowSize,params.windowSize):cuda()

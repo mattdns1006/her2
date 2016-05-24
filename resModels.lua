@@ -123,17 +123,25 @@ function models.resNet()
 	model:add(layer(block, params.nFeats, def[1], 2))
 	model:add(layer(block, params.nFeats, def[2], 2))
 	model:add(layer(block, params.nFeats, def[3], 2))
-	--model:add(Convolution(params.nFeats*def[2],12,2,2,1,1,1,1))
-	--model:add(SBatchNorm(12))
+
 
 	local levelConfig = {
-		["0"] = 5, 
-		["1"] = 4, 
-		["2"] = 3, 
-		["3"] = 2, 
-		["4"] = 1,
+		["0"] = 4, 
+		["1"] = 3, 
+		["2"] = 2, 
+		["3"] = 1, 
+		["4"] = 0,
 	}
-	--for i = 1, params.n
+	local nDownSample = levelConfig[tostring(params.level)]
+	for i = 1, nDownSample do
+		local nInputs
+		local nOutputs = 12
+		if i == 1 then; nInputs = params.nFeats*def[2]; else nInputs = nOutputs; end;
+		model:add(Convolution(nInputs,nOutputs,3,3,1,1,1,1))
+		model:add(SBatchNorm(nOutputs))
+		model:add(ReLU(true))
+		model:add(Max(3,3,2,2,1,1))
+	end
 	
 	--model:add(layer(block, 16, def[4], 2))
 	model:add(Avg(7, 7, 1, 1))
