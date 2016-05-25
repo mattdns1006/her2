@@ -15,7 +15,7 @@ cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
 cmd:option("-nThreads",10,"Number of threads to load data.")
-cmd:option("-nWindows",16,"Number of windows at level 4.")
+cmd:option("-nWindows",24,"Number of windows at level 4.")
 --cmd:option("-windowSize",256,"Size of ROI.")
 cmd:option("-level",3,"What level to read images.")
 cmd:option("-cuda",1,"Use GPU?")
@@ -31,7 +31,7 @@ cmd:option("-displayGraph",0,"Display graph.")
 cmd:option("-displayGraphFreq",200,"Display graph frequency.")
 cmd:option("-ma",80,"Moving average.")
 
-cmd:option("-nFeats",16,"Number of features.")
+cmd:option("-nFeats",24,"Number of features.")
 cmd:option("-nLayers",7,"Number of combinations of CNN/BN/AF/MP.")
 cmd:option("-checkModel",0,"Runs model with one set of inputs for check.")
 cmd:option("-depth",50,"Depth of resnet.")
@@ -143,7 +143,7 @@ function run()
 			)
 			if params.test == 1 and finishedTesting == true then break; end
 			if count % params.displayGraphFreq ==0 then print(counter) end
-			if count == params.nIter then print("Finished training, saving model."); torch.save(modelName,model); break; end
+			if count == params.nIter and params.test ==0 then print("Finished training, saving model."); torch.save(modelName,model); break; end
 
 	end
 

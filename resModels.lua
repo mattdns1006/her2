@@ -116,7 +116,7 @@ function models.resNet()
 	iChannels = params.nFeats 
 
 	-- The ResNet HER2 model
-	model:add(Convolution(3,params.nFeats,2,2,2,2,3,3))
+	model:add(Convolution(3,params.nFeats,3,3,2,2,1,1))
 	model:add(SBatchNorm(params.nFeats))
 	model:add(ReLU(true))
 	model:add(Max(3,3,2,2,1,1))
@@ -126,16 +126,16 @@ function models.resNet()
 
 
 	local levelConfig = {
-		["0"] = 4, 
-		["1"] = 3, 
-		["2"] = 2, 
-		["3"] = 1, 
-		["4"] = 0,
+		["0"] = 6, 
+		["1"] = 5, 
+		["2"] = 4, 
+		["3"] = 3, 
+		["4"] = 2,
 	}
 	local nDownSample = levelConfig[tostring(params.level)]
 	for i = 1, nDownSample do
 		local nInputs
-		local nOutputs = 12
+		local nOutputs = params.nFeats*2 
 		if i == 1 then; nInputs = params.nFeats*def[2]; else nInputs = nOutputs; end;
 		model:add(Convolution(nInputs,nOutputs,3,3,1,1,1,1))
 		model:add(SBatchNorm(nOutputs))
@@ -144,14 +144,14 @@ function models.resNet()
 	end
 	
 	--model:add(layer(block, 16, def[4], 2))
-	model:add(Avg(7, 7, 1, 1))
+	--model:add(Avg(7, 7, 2, 2))
 	--model:add(nn.View(nFeatures):setNumInputDims(3))
 	--model:add(nn.Linear(nFeatures, 1))
 	--
-	local outputSize = model:forward(torch.randn(params.nWindows,3,params.windowSize,params.windowSize)):size()
+	reshapeOutputSize = model:forward(torch.randn(params.nWindows,3,params.windowSize,params.windowSize)):size()
 	print("==>Output size before reshape")
-	print(outputSize)
-	local nOutputsDense = outputSize[2]*outputSize[3]*outputSize[4] 
+	print(reshapeOutputSize)
+	local nOutputsDense = reshapeOutputSize[2]*reshapeOutputSize[3]*reshapeOutputSize[4] 
 	local feats = 50
 	local nTargets = 2
 
