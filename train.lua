@@ -15,11 +15,11 @@ function train(inputs,target,caseNo,coverage)
 	function feval(x)
 		if x ~= parameters then parameters:copy(x) end
 		gradParameters:zero()
-		outputs = model:forward(inputs[1]) -- Only one input for training unlike testing
+		outputs = model:forward(inputs) -- Only one input for training unlike testing
 		loss = criterion:forward(outputs,target)
 		losses[count] = loss
 		dLoss_dO = criterion:backward(outputs,target)
-		model:backward(inputs[1],dLoss_dO)
+		model:backward(inputs,dLoss_dO)
 
 		return	loss, gradParameters 
 	end
@@ -30,7 +30,7 @@ function train(inputs,target,caseNo,coverage)
 		print("==> Some parameters")
 		print(model:parameters()[1][1])
 		print("==> Input size")
-		print(inputs[1]:size())
+		print(inputs:size())
 		print("==> Target")
 		print(target)
 		print("==> Prediction")
@@ -65,34 +65,16 @@ end
 
 function test(inputs,target,caseNo)
 
-	if testLosses == nil then
-		testLosses = {}
+	local outputs = model:forward(inputs)
+	local loss = criterion:forward(outputs,target)
 
-	end
-
-	print(string.rep("=",100))
-	print(string.rep("=",100))
-
-	local averagePred = {}
-	for i= 1, params.nTestPreds do
-		outputs = model:forward(inputs[i])
-		averagePred[i] = outputs
-		--print(averagePred[i])
-		loss = criterion:forward(outputs,target)
-		--print(string.format("Case number %d with loss of %f",caseNo,loss))
-	end
-	local addTable = nn.CAddTable():cuda()
-	averagePred = addTable:forward(averagePred)/params.nTestPreds
-	averageLoss = criterion:forward(averagePred,target)
-	print("Case number ".. caseNo..", with target output of ==>")
-	print(target:mean(1))
-	print("==> Average prediction and loss")
-	print(averagePred:mean(1))
-	print(averageLoss)
-
-	losses[count] = loss
-	count = count + 1
-	collectgarbage()
+	local testOutput = {}
+	testOutput[1] = caseNo
+	testOutput[2] = loss 
+	testOutput[3] = outputs
+	testOutput[4] = target 
+	
+	return testOutput
 end
 
 

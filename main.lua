@@ -63,6 +63,7 @@ params.windowSize, params.nWindows = table.unpack(levelParams[tostring(params.le
 dofile("donkeys.lua")
 dofile("train.lua")
 dofile("counter.lua")
+dofile("resultsTable.lua")
 
 optimState = {
 	learningRate = params.lr,
@@ -113,23 +114,34 @@ if params.checkModel == 1 then checkModel(); params.run = 0; end
 
 function run() 
 	counter = Counter.new()
+	if params.test == 1 then
+		testResults = ResultsTable.new()
+	end
 	while true do 
 	donkeys:addjob(function()
 				return loadData.loadXY(params.nWindows,params.windowSize)
 			end,
 			function(Xy)
-				print(Xy)
 				y = {}
 				inputs, target, y.score, y.percScore, coverage, caseNo = Xy["data"], Xy["target"], Xy["score"], Xy["percScore"], Xy["coverage"], Xy["caseNo"]
 				if params.test == 0 then
 					train(inputs,target,caseNo,coverage)
 				else
-					test(inputs,target,caseNo)
+					local testOutput = test(inputs,target,caseNo)
+					local caseNo, loss, outputs, target = table.unpack(testOutput)
+					testResults:add(tostring(caseNo),{loss,outputs,target})
+					if testResults:checkCount(5) == true then
+						print("Finished testing")
+						finishedTesting = true
+					end
+		
 				end
 				display(Xy)
 				counter:add(caseNo)
+
 			end
 			)
+			if params.test == 1 and finishedTesting == true then break; end
 			if count % params.displayGraphFreq ==0 then print(counter) end
 			if count == params.nIter then print("Finished training, saving model."); torch.save(modelName,model); break; end
 

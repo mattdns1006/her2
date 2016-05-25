@@ -72,16 +72,12 @@ function loadData.loadXY(nWindows,windowSize)
 		currentTable = allPaths[torch.random(#allPaths)] -- Train is stochastic
 	else
 		-- Test
-		if finishedTest == true then
-			print("Thread " .. tid .. " is still sleeping...")
-			sys.sleep(10)
-		elseif currentObs == nil then 
+		if currentObs == nil then 
 			currentObs = 1 
+			nEpochs = 1
 		elseif currentObs == #allPaths then 
 			currentObs = 1
-			print("Thread " .. tid .. " is finished. Sleeping...")
-			finishedTest = true
-			sys.sleep(100000)
+			nEpochs = nEpochs + 1
 		else 
 			currentObs = currentObs + 1	
 		end
@@ -91,30 +87,18 @@ function loadData.loadXY(nWindows,windowSize)
 	local nObsT = csv.length(currentTable[1])
 
 
-	-- Outside for loop addresses multiple predictions for a single case number  i.e for testing
-	local nPreds
-	if params.test == 0 then 
-		nPreds = 1 -- Only provide one input for training
-	else
-		nPreds = params.nTestPreds -- Provide multiple inputs for training
-	end
-
 	local Xy = {}
-	local allTensors = {}
-	for nInputs = 1, nPreds do 
 
-		local tensors = {}
-		for i = 1, nWindows do
-			 local imgPath = currentTable[1][torch.random(nObsT)] -- Draw random int to select window 
-			 local img = image.loadJPG(imgPath)
-			 imgDim = img:size(3)
-			 local img = loadData.augmentCrop(img, windowSize)
-			 tensors[i] = img:reshape(1,3,windowSize,windowSize)
-		end
-		allTensors[#allTensors + 1] = torch.cat(tensors,1):cuda()
+	local tensors = {}
+	for i = 1, nWindows do
+		 local imgPath = currentTable[1][torch.random(nObsT)] -- Draw random int to select window 
+		 local img = image.loadJPG(imgPath)
+		 imgDim = img:size(3)
+		 local img = loadData.augmentCrop(img, windowSize)
+		 tensors[i] = img:reshape(1,3,windowSize,windowSize)
 	end
 
-	Xy["data"] =  allTensors
+	Xy["data"] =  torch.cat(tensors,1):cuda()
 	Xy["score"] = currentTable[2]/3 
 	Xy["percScore"] = currentTable[3]/100 -- Normalize
 	Xy["caseNo"] = currentTable[4] 
