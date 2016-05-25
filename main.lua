@@ -15,7 +15,7 @@ cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
 cmd:option("-nThreads",10,"Number of threads to load data.")
-cmd:option("-nWindows",24,"Number of windows at level 4.")
+cmd:option("-nWindows",32,"Number of windows at level 4.")
 --cmd:option("-windowSize",256,"Size of ROI.")
 cmd:option("-level",3,"What level to read images.")
 cmd:option("-cuda",1,"Use GPU?")
@@ -57,7 +57,7 @@ local levelParams = {
 	["4"] = {level4winSize*1,level4nWindows/1},
 
 }
-params.windowSize, params.nWindows = table.unpack(levelParams[tostring(params.level)])
+params.windowSize, params.nWindows, params.nDownsample = table.unpack(levelParams[tostring(params.level)])
 
 
 dofile("donkeys.lua")
@@ -83,7 +83,7 @@ function display(Xy)
 		if count % params.displayFreq == 0 then 
 			local title = string.format("Case number %d, Targets {%f,%f}, predictions {%f,%f}.", Xy.caseNo, Xy.score, Xy.percScore, 
 							outputs[{{},{1}}]:mean(), outputs[{{},{2}}]:mean())
-			image.display{image = Xy.data[1], win = imgDisplay, legend = title}
+			image.display{image = Xy.data, win = imgDisplay, legend = title}
 		end
 	end
 end

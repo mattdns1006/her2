@@ -65,6 +65,9 @@ end
 
 function test(inputs,target,caseNo)
 
+	if testCount == nil then
+		testCount = 0
+	end
 	local outputs = model:forward(inputs)
 	local loss = criterion:forward(outputs,target)
 
@@ -73,6 +76,8 @@ function test(inputs,target,caseNo)
 	testOutput[2] = loss 
 	testOutput[3] = outputs
 	testOutput[4] = target 
+	xlua.progress(testCount,16*params.nTestPreds)
+	testCOunt = testCount + 1
 	
 	return testOutput
 end
