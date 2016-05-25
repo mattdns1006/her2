@@ -6,7 +6,10 @@ function train(inputs,target,caseNo,coverage)
 
 	if i == nil then
 		if model then parameters,gradParameters = model:getParameters() end
+		print("Number of parameters ==>")
+		print(parameters:size())
 		ma = MovingAverage.new(params.ma)
+		i = 1
 	end
 	
 	function feval(x)
@@ -44,18 +47,19 @@ function train(inputs,target,caseNo,coverage)
 			local MA = ma:forward(lossesT)
 			MA:resize(MA:size(1))
 			local t = torch.range(1,MA:size(1))
-			gnuplot.plot({"Training loss ma of " .. params.ma.. "current mean of " .. MA:mean()..".",t,MA})
+			local title = string.format("Model %s has ma mean (%d) training loss of % f",modelName, params.ma, MA:mean())
+			gnuplot.plot({title,t,MA})
 		end
 		collectgarbage()
        	end
 	if count % params.lrChange == 0 then
 		print("==> Saving model " .. modelName .. ".")
-		torch.save(modelName,model)
+		torch.save("models/"..modelName,model)
 		local clr = params.lr
 		params.lr = params.lr/params.lrDecay
 		print(string.format("Learning rate dropping from %f ====== > %f. ",clr,params.lr))
 	end
-	xlua.progress(count,10000)
+	xlua.progress(count,params.nIter)
 	count = count + 1
 end
 

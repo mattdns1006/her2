@@ -14,8 +14,8 @@ dofile("movingAverage.lua")
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
-cmd:option("-nThreads",13,"Number of threads to load data.")
-cmd:option("-nWindows",40,"Number of windows at level 4.")
+cmd:option("-nThreads",10,"Number of threads to load data.")
+cmd:option("-nWindows",16,"Number of windows at level 4.")
 --cmd:option("-windowSize",256,"Size of ROI.")
 cmd:option("-level",3,"What level to read images.")
 cmd:option("-cuda",1,"Use GPU?")
@@ -39,7 +39,7 @@ cmd:option("-shortcut","C","Shortcut.")
 cmd:option("-dataset","her2","Dataset.")
 cmd:option("-shortcutType","C","Shortcut type.")
 
-cmd:option("-lr",0.0006,"Learning rate.")
+cmd:option("-lr",0.0008,"Learning rate.")
 cmd:option("-lrDecay",1.1,"Learning rate decay")
 cmd:option("-lrChange",400,"Learning rate change frequency.")
 cmd:option("-nIter",20000,"Number of iterations.")
@@ -95,13 +95,13 @@ print(string.format("Model %s, for level %d,  %d features, with %d windows,%d wi
 
 if params.loadModel == 1 then
 	print("==> Loading model "..modelName..".")
-	model = torch.load(modelName)
+	model = torch.load("models/"..modelName)
 else
 	model = resModels.resNet()
 end
 
 if params.cuda == 1 then print("==> Placing model on GPU"); model:cuda(); criterion:cuda(); end
-print("==> model"); 
+print("==> model"); print(model);
 
 function checkModel()
 	input = torch.randn(params.nWindows,3,params.windowSize,params.windowSize):cuda()
@@ -118,6 +118,7 @@ function run()
 				return loadData.loadXY(params.nWindows,params.windowSize)
 			end,
 			function(Xy)
+				print(Xy)
 				y = {}
 				inputs, target, y.score, y.percScore, coverage, caseNo = Xy["data"], Xy["target"], Xy["score"], Xy["percScore"], Xy["coverage"], Xy["caseNo"]
 				if params.test == 0 then
@@ -130,7 +131,7 @@ function run()
 			end
 			)
 			if count % params.displayGraphFreq ==0 then print(counter) end
-			if count == params.nIter then print("Finished training"); break; end
+			if count == params.nIter then print("Finished training, saving model."); torch.save(modelName,model); break; end
 
 	end
 
