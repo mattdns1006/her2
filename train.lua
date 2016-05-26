@@ -54,7 +54,7 @@ function train(inputs,target,caseNo,coverage)
        	end
 	if count % params.lrChange == 0 then
 		print("==> Saving model " .. modelName .. ".")
-		torch.save("models/"..modelName,model)
+		torch.save(modelPath,model)
 		local clr = params.lr
 		params.lr = params.lr/params.lrDecay
 		print(string.format("Learning rate dropping from %f ====== > %f. ",clr,params.lr))
@@ -68,6 +68,7 @@ function test(inputs,target,caseNo)
 	if testCount == nil then
 		testCount = 0
 	end
+
 	local outputs = model:forward(inputs)
 	local loss = criterion:forward(outputs,target)
 
@@ -77,7 +78,7 @@ function test(inputs,target,caseNo)
 	testOutput[3] = outputs
 	testOutput[4] = target 
 	xlua.progress(testCount,16*params.nTestPreds)
-	testCOunt = testCount + 1
+	testCount = testCount + 1
 	
 	return testOutput
 end
