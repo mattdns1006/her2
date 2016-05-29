@@ -126,11 +126,11 @@ function models.resNet()
 
 
 	local levelConfig = {
-		["0"] = 5, 
-		["1"] = 4, 
-		["2"] = 3, 
-		["3"] = 2, 
-		["4"] = 1,
+		["0"] = 6 - params.nLevelAdjust, 
+		["1"] = 5 - params.nLevelAdjust, 
+		["2"] = 4 - params.nLevelAdjust, 
+		["3"] = 3 - params.nLevelAdjust, 
+		["4"] = 2 - params.nLevelAdjust,
 	}
 	local nDownSample = levelConfig[tostring(params.level)]
 	for i = 1, nDownSample do
@@ -162,6 +162,8 @@ function models.resNet()
 	-- All
 	all:add(nn.View(1,nOutputsDense*params.nWindows))
 	all:add(nn.Linear(nOutputsDense*params.nWindows,feats))
+	layers.add_af(all)
+	all:add(nn.Linear(feats,feats))
 	layers.add_af(all)
 	all:add(nn.Linear(feats,feats))
 	layers.add_af(all)

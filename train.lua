@@ -39,8 +39,8 @@ function train(inputs,target,caseNo,coverage)
 	if count % countPrint == 0 then
 
 		local lossesT = torch.Tensor(losses)
-		local targets = target:mean(1):squeeze()
-		local predictions = outputs:mean(1):squeeze()
+		local targets = target[1]:squeeze()
+		local predictions = outputs[1]:squeeze()
 		print(string.format("Count %d ==> Targets = {%f, %f}, prediciton {%f, %f}, current loss %f, ma loss %f, coverage %f.",count, targets[1], targets[2], predictions[1], predictions[2], loss, lossesT[{{-countPrint,-1}}]:mean(),coverage))
 
 		if count > params.ma and params.displayGraph == 1 and count % params.displayGraphFreq ==0 then 
@@ -60,7 +60,7 @@ function train(inputs,target,caseNo,coverage)
 		print(string.format("Learning rate dropping from %f ====== > %f. ",clr,params.lr))
 	end
 	xlua.progress(count,params.nIter)
-	count = count + 1
+
 end
 
 function test(inputs,target,caseNo)

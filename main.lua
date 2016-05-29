@@ -46,8 +46,9 @@ cmd:option("-nIter",20000,"Number of iterations.")
 cmd:text()
 params = cmd:parse(arg)
 
+
+params.nLevelAdjust = 216/params.windowSize - 1
 local level4winSize = params.windowSize 
---local level4winSize = 108 
 local level4nWindows= params.nWindows 
 local levelParams = {
 
@@ -136,13 +137,13 @@ function run()
 					train(inputs,target,caseNo,coverage)
 				else
 					local testOutput = test(inputs,target,caseNo)
-					local caseNo, loss, outputs, target = table.unpack(testOutput)
+					caseNo, loss, outputs, target = table.unpack(testOutput)
 					testResults:add(tostring(caseNo),{loss,outputs[1]:reshape(1,2),target}) -- Use all or ony by one predictions 
 					--testResults:add(tostring(caseNo),{loss,outputs:mean(1),target})
 
 					if tableLength(testResults) == 16 and testResults:checkCount(nTestPreds) == true then
 						print(string.format("Average test result using first %d predictions",nTestPreds))
-						print(testResults:averageLoss(nTestPreds))
+						print(testResults:averageLoss(nTestPreds)["average"])
 						nTestPreds = nTestPreds + 1
 
 						if testResults:checkCount(params.nTestPreds) == true then
@@ -153,6 +154,7 @@ function run()
 					end
 		
 				end
+				count = count + 1
 				display(Xy)
 				counter:add(caseNo)
 
