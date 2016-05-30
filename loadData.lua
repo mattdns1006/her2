@@ -1,6 +1,7 @@
 csv = require "csv"
 require "paths"
-models = require "models"
+local models = require "models"
+local filterModel = torch.load("filter/filter.model"):cuda()
 
 loadData = {}
 
@@ -56,6 +57,8 @@ function loadData.augmentCrop(img,windowSize)
 		image.vflip(img,img)
 		image.hflip(img,img)
 	end
+
+
 	maxX = img:size(3) - windowSize
 	maxY = img:size(2) - windowSize
 
@@ -90,12 +93,22 @@ function loadData.loadXY(nWindows,windowSize)
 	local Xy = {}
 
 	local tensors = {}
+	local imgDim
 	for i = 1, nWindows do
-		 local imgPath = currentTable[1][torch.random(nObsT)] -- Draw random int to select window 
-		 local img = image.loadJPG(imgPath)
-		 imgDim = img:size(3)
-		 local img = loadData.augmentCrop(img, windowSize)
-		 tensors[i] = img:reshape(1,3,windowSize,windowSize)
+		 local suitablePic = false
+		 local img
+		 while suitablePic == false do 
+
+			 local imgPath = currentTable[1][torch.random(nObsT)] -- Draw random int to select window 
+			 img = image.loadJPG(imgPath)
+			 imgDim = img:size(3)
+			 img = loadData.augmentCrop(img, windowSize)
+			 local imgScale = image.scale(img,128,128,"simple"):cuda()
+			 local output = filterModel:forward(imgScale:view(1,3,128,128))
+			 if output[1] > 0.8 then suitablePic = true end
+
+		end
+		tensors[i] = img:reshape(1,3,windowSize,windowSize)
 	end
 
 	Xy["data"] =  torch.cat(tensors,1):cuda()
