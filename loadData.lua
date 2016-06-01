@@ -105,7 +105,7 @@ function loadData.loadXY(nWindows,windowSize)
 			 img = loadData.augmentCrop(img, windowSize)
 			 local imgScale = image.scale(img,128,128,"simple"):cuda()
 			 local output = filterModel:forward(imgScale:view(1,3,128,128))
-			 if output[1] > 0.8 then suitablePic = true end
+			 if output[1] > 0.9 then suitablePic = true end
 
 		end
 		tensors[i] = img:reshape(1,3,windowSize,windowSize)

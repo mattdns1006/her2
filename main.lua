@@ -41,8 +41,8 @@ cmd:option("-shortcutType","C","Shortcut type.")
 
 cmd:option("-lr",0.0008,"Learning rate.")
 cmd:option("-lrDecay",1.1,"Learning rate decay")
-cmd:option("-lrChange",400,"Learning rate change frequency.")
-cmd:option("-nIter",20000,"Number of iterations.")
+cmd:option("-lrChange",2000,"Learning rate change frequency.")
+cmd:option("-nIter",50000,"Number of iterations.")
 cmd:text()
 params = cmd:parse(arg)
 
