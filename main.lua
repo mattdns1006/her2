@@ -42,7 +42,7 @@ cmd:option("-shortcutType","C","Shortcut type.")
 cmd:option("-lr",0.0008,"Learning rate.")
 cmd:option("-lrDecay",1.1,"Learning rate decay")
 cmd:option("-lrChange",2000,"Learning rate change frequency.")
-cmd:option("-nIter",50000,"Number of iterations.")
+cmd:option("-nIter",30000,"Number of iterations.")
 cmd:text()
 params = cmd:parse(arg)
 
@@ -161,7 +161,7 @@ function run()
 			end
 			)
 			if params.test == 1 and finishedTesting == true then break; end
-			if count % params.displayGraphFreq ==0 then print(counter) end
+			if count % 1000 ==0 then print(counter) end
 			if count == params.nIter and params.test ==0 then print("Finished training, saving model."); torch.save(modelPath,model); break; end
 
 	end

@@ -36,6 +36,24 @@ function ResultsTable:checkCount(number)
 
 end
 
+function ResultsTable:averagePred(number)
+	averagePred = {}
+	nPreds = number
+	for k,v in pairs(self) do
+		local t = {}
+		for i =1, nPreds do
+			t[i] = v[i][2]:double()
+		end
+		local t = torch.cat(t,1)
+		local target = v[1][3]:mean(1):double()
+		pair = {}
+		pair["target"] = target
+		pair["preds"] = t 
+		averagePred[k] = pair	
+	end
+	return averagePred
+end
+
 function ResultsTable:averageLoss(number)
 	local averageLosses = {}
 	local averageLossesScore = {}
