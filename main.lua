@@ -25,6 +25,8 @@ cmd:option("-modelName","resNet1.model","Model name.")
 cmd:option("-loadModel",0,"Load model.")
 cmd:option("-nTestPreds",20,"Number of different inputs to make predictions on in test.")
 
+cmd:option("-actualTest",0,"Actual test - evaluated test set.")
+
 cmd:option("-display",0,"Display images.")
 cmd:option("-displayFreq",80,"Display images.")
 cmd:option("-displayGraph",0,"Display graph.")
@@ -143,7 +145,11 @@ function run()
 
 					if tableLength(testResults) == 16 and testResults:checkCount(nTestPreds) == true then
 						print(string.format("Average test result using first %d predictions",nTestPreds))
-						print(testResults:averageLoss(nTestPreds)["average"])
+						if params.actualTest == 1 then
+							print(testResults:averagePred(nTestPreds))
+						else
+							print(testResults:averageLoss(nTestPreds)["average"])
+						end
 						nTestPreds = nTestPreds + 1
 
 						if testResults:checkCount(params.nTestPreds) == true then

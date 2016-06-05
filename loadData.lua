@@ -7,15 +7,22 @@ loadData = {}
 
 function loadData.init(tid,nThreads,level)
 
+	local dataPath
 	if params.test == 0 then 
 		print("==> Training")
 		csvFile = "groundTruthTrain.csv"
-	else	
+		dataPath = "data/"
+	elseif params.test == 1 and params.actualTest ==0 then
 		print("==> Testing")
 		csvFile = "groundTruthTest.csv"
+		dataPath = "data/"
+	else	
+		print("==> True test")
+		csvFile = "groundTruth.csv"
+		dataPath = "testData/"
 	end
 
-	local dataPath = "data/"
+
 	local groundTruth = csv.csvToTable(dataPath .. csvFile) -- main truth table
 	allPaths = {}
 	local nObs = csv.length(groundTruth)
