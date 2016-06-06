@@ -147,6 +147,14 @@ function layers.ConvInit(name,block)
 	end
 end
 
+function layers.TConvInit(name,block)
+	for k,v in pairs(block:findModules(name)) do
+		local n = v.kW*v.outputFrameSize
+		v.weight:normal(0,math.sqrt(2/n))
+		v.bias:zero()
+	end
+end
+
 function layers.BNInit(name,block)
 	for k,v in pairs(block:findModules(name)) do
 		v.weight:fill(1)
@@ -163,6 +171,7 @@ end
 function layers.init(block)
 	layers.ConvInit('cudnn.SpatialConvolution',block)
 	layers.ConvInit('nn.SpatialConvolution',block)
+	layers.TConvInit('nn.TemporalConvolution',block)
 	layers.BNInit('fbnn.SpatialBatchNormalization',block)
 	layers.BNInit('cudnn.SpatialBatchNormalization',block)
 	layers.BNInit('nn.SpatialBatchNormalization',block)
