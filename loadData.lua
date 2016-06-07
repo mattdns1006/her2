@@ -21,7 +21,12 @@ function loadData.init(tid,nThreads,level)
 		csvFile = "groundTruth.csv"
 		dataPath = "testData/"
 	end
-
+	local HEorHER2
+	if params.HEorHER2 == 1 then	
+		HEorHER2 = "HE/"
+	else
+		HEorHER2 = "HER2/"
+	end
 
 	local groundTruth = csv.csvToTable(dataPath .. csvFile) -- main truth table
 	allPaths = {}
@@ -31,7 +36,7 @@ function loadData.init(tid,nThreads,level)
 
 	        local row = groundTruth[i]:split(",")
 	        local caseNumber, score, percScore = row[1], row[2], row[3]
-	        local casePath = dataPath .. "roi_" .. caseNumber .. "/" .. level .."/"
+	        local casePath = dataPath .. "roi_" .. caseNumber .. "/" .. level .."/" .. HEorHER2
 
 	        local imgPaths = {} 
 	        j = 1
@@ -44,11 +49,6 @@ function loadData.init(tid,nThreads,level)
 	 end 
 	 collectgarbage()
 end
-
-function loadData.oneHot(target,nTargets)
-	return torch.eye(nTargets):narrow(1,target+1,1):squeeze()
-end
-
 
 function loadData.augmentCrop(img,windowSize)
 	assert(windowSize<img:size(3),string.format("Window size %d is bigger than image size of %d.",

@@ -14,6 +14,8 @@ dofile("movingAverage.lua")
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
+
+cmd:option("-HEorHER2",0,"HE or HER2 data.")
 cmd:option("-nThreads",10,"Number of threads to load data.")
 cmd:option("-nWindows",100,"Number of windows at level 4.")
 cmd:option("-windowSize",216,"Size of ROI.")
