@@ -138,13 +138,11 @@ criterion = nn.MSECriterion():cuda()
 
 function onePass()
 	if i == nil then i = 1 end
-	local x,y = loadData.loadObs(loadData.trainPaths)
+	local x,y = loadData.loadObs("train")
 	train(x,y)
 	if i % 20 == 0 then
-
 		display(x,y,output,1)
-
-		local x,y = loadData.loadObs(loadData.testPaths)
+		local x,y = loadData.loadObs("test")
 		local output = model:forward(x)
 		display(x,y,output,0)
 	end

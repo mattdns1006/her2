@@ -13,23 +13,33 @@ loadData.trainPaths = {}
 loadData.testPaths = {}
 local path = "data/"
 local level = tostring(7) 
-local i = 1
 for f in paths.files(path,"roi_") do
 	local folder = path .. f .. "/".. level .. "/"
 	for pic in paths.files(folder,"HER2") do
-		if i < 36 then 
 			loadData.trainPaths[#loadData.trainPaths+1] = folder..pic
-		else
-			loadData.testPaths[#loadData.testPaths+1] = folder..pic
-		end
 	end
-	i = i + 1
+end
+
+local path = "testData/"
+local level = tostring(7) 
+for f in paths.files(path,"roi_") do
+	local folder = path .. f .. "/".. level .. "/"
+	for pic in paths.files(folder,"HER2") do
+			loadData.testPaths[#loadData.testPaths+1] = folder..pic
+	end
 end
 
 
-function loadData.loadObs(dataPaths)
-	rObs = dataPaths[torch.random(#dataPaths)]
-	x,y = image.loadJPG(rObs), image.loadPNG(rObs:gsub("HER2.jpg","y1.png"))
+function loadData.loadObs(trainOrTest)
+	local x, y
+	local rObs
+	if trainOrTest == "train" then
+		rObs = loadData.trainPaths[torch.random(#loadData.trainPaths)]
+		x,y = image.loadJPG(rObs), image.loadPNG(rObs:gsub("HER2.jpg","y1.png"))
+	else
+		rObs = loadData.testPaths[torch.random(#loadData.testPaths)]
+		x,y = image.loadJPG(rObs), image.loadJPG(rObs:gsub("HER2.jpg","HE.jpg"))
+	end
 
 	-- Random flips
 	local randInt = torch.random(4)
