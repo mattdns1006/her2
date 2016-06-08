@@ -7,17 +7,17 @@ local function fileExists(name)
 	if f~=nil then io.close(f) return true else return false end
 end
 
-local loadData = {}
+loadData = {}
 
 loadData.trainPaths = {}
 loadData.testPaths = {}
-local path = "data/"
+local path = "data/augmented/"
 local level = tostring(7) 
-for f in paths.files(path,"roi_") do
-	local folder = path .. f .. "/".. level .. "/"
-	for pic in paths.files(folder,"HER2") do
-			loadData.trainPaths[#loadData.trainPaths+1] = folder..pic
-	end
+for f in paths.files(path,"x") do
+	local folder = path .. f 
+	--for pic in paths.files(folder,"HER2") do
+	loadData.trainPaths[#loadData.trainPaths+1] = folder
+	--end
 end
 
 local path = "testData/"
@@ -28,34 +28,39 @@ for f in paths.files(path,"roi_") do
 			loadData.testPaths[#loadData.testPaths+1] = folder..pic
 	end
 end
-
+img = torch.rand(1,30,40)
+function rotate(img)
+	--xShift, yShift = torch.random(10), torch.random(10)
+	--row, col = img[{{},{},{1}}], img[{{},{1]}}]
+end
 
 function loadData.loadObs(trainOrTest)
 	local x, y
 	local rObs
 	if trainOrTest == "train" then
 		rObs = loadData.trainPaths[torch.random(#loadData.trainPaths)]
-		x,y = image.loadJPG(rObs), image.loadPNG(rObs:gsub("HER2.jpg","y1.png"))
+		x,y = image.loadJPG(rObs), image.loadJPG(rObs:gsub("x","y"))
+
+		local randInt = torch.random(4)
+		if randInt == 1 then	
+		elseif randInt == 2 then
+			image.vflip(x,x)
+			image.vflip(y,y)
+		elseif randInt == 3 then
+			image.hflip(x,x)
+			image.hflip(y,y)
+		elseif randInt == 4 then
+			image.vflip(x,x)
+			image.vflip(y,y)
+			image.hflip(x,x)
+			image.hflip(y,y)
+		end
 	else
 		rObs = loadData.testPaths[torch.random(#loadData.testPaths)]
 		x,y = image.loadJPG(rObs), image.loadJPG(rObs:gsub("HER2.jpg","HE.jpg"))
 	end
 
 	-- Random flips
-	local randInt = torch.random(4)
-	if randInt == 1 then	
-	elseif randInt == 2 then
-		image.vflip(x,x)
-		image.vflip(y,y)
-	elseif randInt == 3 then
-		image.hflip(x,x)
-		image.hflip(y,y)
-	elseif randInt == 4 then
-		image.vflip(x,x)
-		image.vflip(y,y)
-		image.hflip(x,x)
-		image.hflip(y,y)
-	end
 	return x:cuda():resize(1,x:size(1),x:size(2),x:size(3)),y:cuda():resize(1,y:size(1),y:size(2))
 end
 

@@ -13,12 +13,12 @@ dofile("train.lua")
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
-cmd:option("-modelName","deconv.model","Name of model.")
+cmd:option("-modelName","deconv1.model","Name of model.")
 cmd:option("-modelSave",2000,"How often to save.")
 cmd:option("-loadModel",0,"Load model.")
 
-cmd:option("-lr",0.0005,"Learning rate.")
-cmd:option("-lrDecay",1.02,"Learning rate change factor.")
+cmd:option("-lr",0.0006,"Learning rate.")
+cmd:option("-lrDecay",1.2,"Learning rate change factor.")
 cmd:option("-lrChange",1000,"How often to change lr.")
 
 cmd:option("-display",1,"Display images.")
@@ -38,6 +38,7 @@ cmd:option("-",,".")
 cmd:text()
 params = cmd:parse(arg)
 
+--dofile("donkeys.lua")
 
 optimState = {
 	learningRate = params.lr,
@@ -92,14 +93,14 @@ function buildModel()
 	local Dropout = nn.Dropout
 	local function same(model)
 		nInputs = nOutputs or 3
-		nOutputs = nOutputs or 3 
+		nOutputs = nOutputs or 6 
 		model:add(Convolution(nInputs,nOutputs,3,3,1,1,1,1))
 		:add(SBN(nOutputs))
 		:add(af())
 	end
 	local function down(model)
 		nInputs = nOutputs or 3
-		nOutputs = nOutputs or 12 
+		nOutputs = nOutputs or 16 
 		model:add(Convolution(nInputs,nOutputs,3,3,1,1,1,1))
 		:add(SBN(nOutputs))
 		:add(af())
@@ -107,7 +108,7 @@ function buildModel()
 	end
 	local function up(model)
 		nInputs = nOutputs or 3
-		nOutputs = nOutputs or 12 
+		nOutputs = nOutputs or 16 
 		model:add(Convolution(nInputs,nOutputs,3,3,1,1,1,1))
 		:add(SBN(nOutputs))
 		:add(af())
