@@ -1,8 +1,8 @@
 losses = {}
 count = count or 1 
-local countPrint = 20
+local countPrint = 10 
 
-function train(inputs,target,caseNo,coverage)
+function train(inputs,target,caseNo)
 
 	if i == nil then
 		if model then parameters,gradParameters = model:getParameters() end
@@ -12,6 +12,7 @@ function train(inputs,target,caseNo,coverage)
 		i = 1
 	end
 	
+	local loss
 	function feval(x)
 		if x ~= parameters then parameters:copy(x) end
 		gradParameters:zero()
@@ -27,10 +28,8 @@ function train(inputs,target,caseNo,coverage)
 	_, batchLoss = optimMethod(feval,parameters,optimState)
 
 	if count % params.displayGraphFreq == 0 then
-		print("==> Some parameters")
-		print(model:parameters()[1][1])
 		print("==> Input size")
-		print(inputs:size())
+		print(inputs)
 		print("==> Target")
 		print(target)
 		print("==> Prediction")
@@ -38,10 +37,10 @@ function train(inputs,target,caseNo,coverage)
 	end
 	if count % countPrint == 0 then
 
-		local lossesT = torch.Tensor(losses)
-		local targets = target[1]:squeeze()
-		local predictions = outputs[1]:squeeze()
-		print(string.format("Count %d ==> Targets = {%f, %f}, prediciton {%f, %f}, current loss %f, ma loss %f, coverage %f.",count, targets[1], targets[2], predictions[1], predictions[2], loss, lossesT[{{-countPrint,-1}}]:mean(),coverage))
+		lossesT = torch.Tensor(losses)
+		targetScore, targetPercScore = target:squeeze()[1], target:squeeze()[2]
+		predScore, predPercScore = outputs:squeeze()[1], outputs:squeeze()[2]
+		print(string.format("Count %d ==> Targets = {%f, %f}, prediciton {%f, %f}, current loss %f, ma loss %f.",count, targetScore, targetPercScore, predScore, predPercScore, loss, lossesT[{{-countPrint,-1}}]:mean()))
 
 		if count > params.ma and params.displayGraph == 1 and count % params.displayGraphFreq ==0 then 
 			local MA = ma:forward(lossesT)

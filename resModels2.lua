@@ -62,23 +62,26 @@ function models.resNetSiamese()
 		model:add(ReLU(true))
 		return model
 	end
-	layers.init(paraNet)
+
 	paraNet:add(miniNet()):add(miniNet())
+	layers.init(paraNet)
 	model:add(paraNet):add(nn.JoinTable(2))
 	model:add(nn.Linear(50,25))
 	model:add(ReLU(true))
 	model:add(nn.Linear(25,2))
+	layers.init(model)
 	return model 
 end
-
+--[[
 params = {}
-params.windowSize = 112 
+params.windowSize = 256 
 params.nWindows = 5 
 params.nFeats = 24
-x = torch.rand(params.nWindows,3,params.windowSize,params.windowSize):cuda()
-X = {x,x}
+local x = torch.rand(params.nWindows,3,params.windowSize,params.windowSize):cuda()
+local X = {x,x}
 m = models.resNetSiamese():cuda()
 print(m:forward(X))
+]]--
 
 return models
 

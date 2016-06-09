@@ -17,7 +17,7 @@ cmd:text("Options")
 
 cmd:option("-HEorHER2",0,"HE or HER2 data.")
 cmd:option("-nThreads",10,"Number of threads to load data.")
-cmd:option("-nWindows",100,"Number of windows at level 4.")
+cmd:option("-nWindows",10,"Number of windows at level 4.")
 cmd:option("-windowSize",216,"Size of ROI.")
 cmd:option("-level",3,"What level to read images.")
 cmd:option("-cuda",1,"Use GPU?")
@@ -40,7 +40,6 @@ cmd:option("-nLayers",7,"Number of combinations of CNN/BN/AF/MP.")
 cmd:option("-checkModel",0,"Runs model with one set of inputs for check.")
 cmd:option("-depth",50,"Depth of resnet.")
 cmd:option("-shortcut","C","Shortcut.")
-cmd:option("-dataset","her2","Dataset.")
 cmd:option("-shortcutType","C","Shortcut type.")
 
 cmd:option("-lr",0.0008,"Learning rate.")
@@ -49,11 +48,13 @@ cmd:option("-lrChange",2000,"Learning rate change frequency.")
 cmd:option("-nIter",30000,"Number of iterations.")
 cmd:text()
 params = cmd:parse(arg)
+print(params)
 
-
+--[[
 params.nLevelAdjust = 216/params.windowSize - 1
 local level4winSize = params.windowSize 
 local level4nWindows= params.nWindows 
+
 local levelParams = {
 
 	["0"] = {level4winSize*16,level4nWindows/16},
@@ -64,10 +65,12 @@ local levelParams = {
 
 }
 params.windowSize, params.nWindows, params.nDownsample = table.unpack(levelParams[tostring(params.level)])
+]]--
 
 
 dofile("donkeys.lua")
 dofile("train.lua")
+dofile("round.lua")
 dofile("counter.lua")
 dofile("resultsTable.lua")
 
@@ -82,20 +85,23 @@ optimMethod = optim.adam
 
 function display(Xy)
 	if params.display == 1 then 
-		if imgDisplay == nil then 
+		if imgDisplayHER2 == nil then 
 			local initPic = torch.range(1,torch.pow(params.windowSize,2),1):reshape(params.windowSize,params.windowSize)
-			imgDisplay = image.display{image=initPic, zoom=2, offscreen=false}
+			imgDisplayHER2 = image.display{image=initPic, zoom=2, offscreen=false}
+			imgDisplayHE = image.display{image=initPic, zoom=2, offscreen=false}
 		end
 		if count % params.displayFreq == 0 then 
 			local title = string.format("Case number %d, Targets {%f,%f}, predictions {%f,%f}.", Xy.caseNo, Xy.score, Xy.percScore, 
-							outputs[{{},{1}}]:mean(), outputs[{{},{2}}]:mean())
-			image.display{image = Xy.data, win = imgDisplay, legend = title}
+							round(outputs:squeeze()[1],3), round(outputs:squeeze()[2],3))
+			image.display{image = Xy.data[1], win = imgDisplayHER2, legend = title}
+			image.display{image = Xy.data[2], win = imgDisplayHE, legend = title}
 		end
 	end
 end
 
 criterion = nn.MSECriterion()
-resModels = require "resModels"
+local resModels = require "resModels"
+local resModels2 = require "resModels2"
 modelName = string.format("%s_%d_%d_%d_%d_%d",params.modelName, params.level, params.nWindows, params.windowSize, params.nFeats, params.nIter)
 print(string.format("Model %s, for level %d,  %d features, with %d windows,%d window size (sqrt(area))",
 		    modelName,params.level, params.nFeats, params.nWindows, params.windowSize))
@@ -105,7 +111,7 @@ if params.loadModel == 1 then
 	print("==> Loading model "..modelName..".")
 	model = torch.load(modelPath)
 else
-	model = resModels.resNet()
+	model = resModels2.resNetSiamese()
 end
 
 if params.cuda == 1 then print("==> Placing model on GPU"); model:cuda(); criterion:cuda(); end
@@ -138,13 +144,11 @@ function run()
 				y = {}
 				inputs, target, y.score, y.percScore, coverage, caseNo = Xy["data"], Xy["target"], Xy["score"], Xy["percScore"], Xy["coverage"], Xy["caseNo"]
 				if params.test == 0 then
-					train(inputs,target,caseNo,coverage)
+					train(inputs,target,caseNo)
 				else
 					local testOutput = test(inputs,target,caseNo)
 					caseNo, loss, outputs, target = table.unpack(testOutput)
 					testResults:add(tostring(caseNo),{loss,outputs[1]:reshape(1,2),target}) -- Use all or ony by one predictions 
-					--testResults:add(tostring(caseNo),{loss,outputs:mean(1),target})
-
 					if tableLength(testResults) == 16 and testResults:checkCount(nTestPreds) == true then
 						print(string.format("Average test result using first %d predictions",nTestPreds))
 						if params.actualTest == 1 then
