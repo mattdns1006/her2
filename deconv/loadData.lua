@@ -9,36 +9,36 @@ end
 
 loadData = {}
 
+loadData.augPaths = {}
 loadData.trainPaths = {}
 loadData.testPaths = {}
 local path = "data/augmented/"
 local level = tostring(7) 
 for f in paths.files(path,"x") do
 	local folder = path .. f 
-	--for pic in paths.files(folder,"HER2") do
-	loadData.trainPaths[#loadData.trainPaths+1] = folder
-	--end
+	loadData.augPaths[#loadData.augPaths+1] = folder
 end
 
+local path = "data/"
+for f in paths.files(path,"roi_") do
+	local folder = path .. f .. "/".. level .. "/"
+	for pic in paths.files(folder,"HER2") do
+			loadData.trainPaths[#loadData.trainPaths+1] = folder..pic
+	end
+end
 local path = "testData/"
-local level = tostring(7) 
 for f in paths.files(path,"roi_") do
 	local folder = path .. f .. "/".. level .. "/"
 	for pic in paths.files(folder,"HER2") do
 			loadData.testPaths[#loadData.testPaths+1] = folder..pic
 	end
 end
-img = torch.rand(1,30,40)
-function rotate(img)
-	--xShift, yShift = torch.random(10), torch.random(10)
-	--row, col = img[{{},{},{1}}], img[{{},{1]}}]
-end
 
 function loadData.loadObs(trainOrTest)
 	local x, y
 	local rObs
-	if trainOrTest == "train" then
-		rObs = loadData.trainPaths[torch.random(#loadData.trainPaths)]
+	if trainOrTest == "aug" then
+		rObs = loadData.augPaths[torch.random(#loadData.trainPaths)]
 		x,y = image.loadJPG(rObs), image.loadJPG(rObs:gsub("x","y"))
 
 		local randInt = torch.random(4)
@@ -55,7 +55,10 @@ function loadData.loadObs(trainOrTest)
 			image.hflip(x,x)
 			image.hflip(y,y)
 		end
-	else
+	elseif trainOrTest == "train" then
+		rObs = loadData.trainPaths[torch.random(#loadData.trainPaths)]
+		x,y = image.loadJPG(rObs), image.loadJPG(rObs:gsub("HER2.jpg","HE.jpg"))
+	else 
 		rObs = loadData.testPaths[torch.random(#loadData.testPaths)]
 		x,y = image.loadJPG(rObs), image.loadJPG(rObs:gsub("HER2.jpg","HE.jpg"))
 	end

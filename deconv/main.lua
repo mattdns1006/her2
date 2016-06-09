@@ -18,7 +18,7 @@ cmd:option("-modelSave",2000,"How often to save.")
 cmd:option("-loadModel",0,"Load model.")
 
 cmd:option("-lr",0.0006,"Learning rate.")
-cmd:option("-lrDecay",1.2,"Learning rate change factor.")
+cmd:option("-lrDecay",1.01,"Learning rate change factor.")
 cmd:option("-lrChange",1000,"How often to change lr.")
 
 cmd:option("-display",1,"Display images.")
@@ -28,7 +28,6 @@ cmd:option("-displayGraphFreq",500,"Display graph of loss.")
 cmd:option("-nIter",100000,"Number of iterations.")
 cmd:option("-ma",200,"Moving average.")
 cmd:option("-run",1,"Run.")
-
 
 --[[
 cmd:option("-",,".")
@@ -139,7 +138,7 @@ criterion = nn.MSECriterion():cuda()
 
 function onePass()
 	if i == nil then i = 1 end
-	local x,y = loadData.loadObs("train")
+	local x,y = loadData.loadObs("aug")
 	train(x,y)
 	if i % 20 == 0 then
 		display(x,y,output,1)
@@ -157,9 +156,24 @@ function run()
 	end
 end
 if params.run == 1 then run() end
-
 	
+function preds()
+	assert(model,"Please load model")
+	local dataPaths = {loadData.trainPaths, loadData.testPaths}
+	for _,dataPath in ipairs(dataPaths) do 
+		for _,v in ipairs(dataPath) do 
+			v = v:gsub("HER2","HE")
+			local x = image.loadJPG(v):cuda()
+			x:resize(1,x:size(1),x:size(2),x:size(3))
+			local yPred = model:forward(x):squeeze()
+			local yPredScale = image.scale(yPred:double(),x:size(4),x:size(3)):cuda()
+			local savePath = v:gsub("HE","HEFitted")
+			--image.display(yPredScale)
+			image.save(savePath,yPredScale)
 
+		end
+	end
+end
 
 
 
