@@ -103,36 +103,36 @@ function loadData.loadXY(nWindows,windowSize)
 
 	local Xy = {}
 
-	local tensors = {}
-	tensors[1] = {}
-	tensors[2] = {}
+	local allTensors = {}
 	local imgDim
-	for i = 1, nWindows do
-		local function suitableImg(HER2orHETable)
-			 local suitablePic = false
-			 local img
-			 while suitablePic == false do 
+	function generateWindows(nWindows,HER2orHETable)
+		local tensors = {}
+		for i = 1, nWindows do
+			local function suitableImg(HER2orHETable)
+				 local suitablePic = false
+				 local img
+				 while suitablePic == false do 
 
-				 local nObsT = csv.length(HER2orHETable)
-				 local imgPath = HER2orHETable[torch.random(nObsT)] -- Draw random int to select window 
-				 img = image.loadJPG(imgPath)
-				 imgDim = img:size(3)
-				 img = loadData.augmentCrop(img, windowSize)
-				 local imgScale = image.scale(img,128,128,"simple"):cuda()
-				 local output = filterModel:forward(imgScale:view(1,3,128,128))
-				 if output[1] > 0.9 then suitablePic = true; end
+					 local nObsT = csv.length(HER2orHETable)
+					 local imgPath = HER2orHETable[torch.random(nObsT)] -- Draw random int to select window 
+					 img = image.loadJPG(imgPath)
+					 imgDim = img:size(3)
+					 img = loadData.augmentCrop(img, windowSize)
+					 local imgScale = image.scale(img,128,128,"simple"):cuda()
+					 local output = filterModel:forward(imgScale:view(1,3,128,128))
+					 if output[1] > 0.9 then suitablePic = true; end
 
+				end
+				return img:reshape(1,3,windowSize,windowSize)
 			end
-			return img:reshape(1,3,windowSize,windowSize)
+			tensors[i] = suitableImg(HER2orHETable) 
 		end
-		tensors[1][i] = suitableImg(currentTable[1].HER2) 
-		tensors[2][i] = suitableImg(currentTable[1].HE)
-
+		return torch.cat(tensors,1):cuda()
 	end
 	
-	tensors[1] = torch.cat(tensors[1],1):cuda() 
-	tensors[2] = torch.cat(tensors[2],1):cuda()
-	Xy["data"] = tensors 
+	allTensors[1] = generateWindows(params.nHER2Windows,currentTable[1]["HER2"]) 
+	allTensors[2] = generateWindows(params.nHEWindows,currentTable[1]["HE"]) 
+	Xy["data"] = allTensors 
 	Xy["score"] = currentTable[2]/3 -- Normalize
 	Xy["percScore"] = currentTable[3]/100 -- Normalize
 	Xy["caseNo"] = currentTable[4] 
@@ -156,13 +156,14 @@ function loadData.main(display)
 
 	params = {}
 	params.windowSize = 256 
-	params.nWindows = 5
+	params.nHER2Windows= 5
+	params.nHEWindows = 2 
 	params.level = 2 
 	params.nFeats = 16
 	params.nLayers = 6 
 	params.test = 0
 	params.nTestPreds = 10
-	model = models.resNetSiamese()
+	--model = models.resNetSiamese()
 
 	if init == nil then
 		require "image"

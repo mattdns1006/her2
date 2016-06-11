@@ -41,7 +41,7 @@ function models.resNetSiamese()
 	local paraNet = nn.ParallelTable()	
 	
 	local nLayers = math.ceil(math.log(params.windowSize,2)) - 1
-	local function miniNet()
+	local function miniNet(nWindows)
 		local model = nn.Sequential()
 		local nFeats = params.nFeats
 		local nInputs
@@ -49,21 +49,21 @@ function models.resNetSiamese()
 			if i == 1 then nInputs = 3; else nInputs = nFeats; end
 			model:add(basicblock(nInputs,nFeats,2))
 		end
-		model:add(nn.View(params.nWindows*nFeats*4,1))
+		model:add(nn.View(nWindows*nFeats*4,1))
 		model:add(Convolution1D(1,10,1,1))
 		model:add(nn.BatchNormalization(10))
 		model:add(ReLU(true))
 		model:add(Max1D(3,2))
 		model:add(Convolution1D(10,1,1,1))
 		model:add(ReLU(true))
-		local nOutputs = model:forward(torch.rand(params.nWindows,3,params.windowSize,params.windowSize)):size(1)
+		local nOutputs = model:forward(torch.rand(nWindows,3,params.windowSize,params.windowSize)):size(1)
 		model:add(nn.View(1,nOutputs))
 		model:add(nn.Linear(nOutputs,25))
 		model:add(ReLU(true))
 		return model
 	end
 
-	paraNet:add(miniNet()):add(miniNet())
+	paraNet:add(miniNet(params.nHER2Windows)):add(miniNet(params.nHEWindows))
 	layers.init(paraNet)
 	model:add(paraNet):add(nn.JoinTable(2))
 	model:add(nn.Linear(50,25))

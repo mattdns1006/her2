@@ -16,7 +16,9 @@ cmd:text()
 cmd:text("Options")
 
 cmd:option("-nThreads",10,"Number of threads to load data.")
-cmd:option("-nWindows",10,"Number of windows at level 4.")
+--cmd:option("-nWindows",10,"Number of windows at level 4.")
+cmd:option("-nHER2Windows",10,"Number of windows.")
+cmd:option("-nHEWindows",4,"Number of windows.")
 cmd:option("-windowSize",216,"Size of ROI.")
 cmd:option("-level",3,"What level to read images.")
 cmd:option("-cuda",1,"Use GPU?")
@@ -32,7 +34,7 @@ cmd:option("-display",0,"Display images.")
 cmd:option("-displayFreq",80,"Display images.")
 cmd:option("-displayGraph",0,"Display graph.")
 cmd:option("-displayGraphFreq",200,"Display graph frequency.")
-cmd:option("-ma",50,"Moving average.")
+cmd:option("-ma",25,"Moving average.")
 
 cmd:option("-nFeats",24,"Number of features.")
 cmd:option("-nLayers",7,"Number of combinations of CNN/BN/AF/MP.")
@@ -83,9 +85,9 @@ end
 criterion = nn.MSECriterion()
 local resModels = require "resModels"
 local resModels2 = require "resModels2"
-modelName = string.format("%s_%d_%d_%d_%d_%d",params.modelName, params.level, params.nWindows, params.windowSize, params.nFeats, params.nIter)
-print(string.format("Model %s, for level %d,  %d features, with %d windows,%d window size (sqrt(area))",
-		    modelName,params.level, params.nFeats, params.nWindows, params.windowSize))
+modelName = string.format("%s_%d_%d_%d_%d_%d_%d",params.modelName, params.level, params.nHER2Windows, params.nHEWindows,params.windowSize, params.nFeats, params.nIter)
+print(string.format("Model %s, for level %d,  %d features, with %d windows,(%d, %d} window size (sqrt(area))",
+		    modelName,params.level, params.nFeats, params.nHER2Windows, params.nHEWindows, params.windowSize))
 
 modelPath = "models/" .. modelName
 if params.loadModel == 1 then
@@ -138,6 +140,8 @@ function run()
 	nTestPreds = 1
 	trainLosses = {}
 	testLosses = {}
+	trainLossesMA = {}
+	testLossesMA = {}
 	ma = MovingAverage.new(params.ma)
 	testMaNumber = math.ceil(params.ma)
 	testMa = MovingAverage.new(testMaNumber)
@@ -168,24 +172,36 @@ function run()
 			if count > params.ma and testCount > testMaNumber and count % 20 == 0 then 
 				local trainTensor = torch.Tensor(trainLosses)
 				local testTensor = torch.Tensor(testLosses)
+				local maTrain = trainTensor[{{-params.ma,-1}}]:mean()
+				local maTest = testTensor[{{-testMaNumber,-1}}]:mean()
+				trainLossesMA[#trainLossesMA+1] = maTrain
+				testLossesMA[#testLossesMA+1] = maTest
 				print(string.format("Train/test ma of {%d,%d} = {%f,%f}",params.ma,testMaNumber,
-						trainTensor[{{-params.ma,-1}}]:mean(),
-						testTensor[{{-testMaNumber,-1}}]:mean())
+						maTrain, maTest
+						)
 						)
 
 				
 				if  params.displayGraph == 1 and  count % params.displayGraphFreq == 0 then 
-					local MATrain = tensorToMA(trainTensor,"train") 
-					local MATest = tensorToMA(testTensor,"test") 
-					local MATrain, MATest = torch.Tensor(trainLosses), torch.Tensor(testLosses)
-					local tTrain, tTest = torch.range(1,MATrain:size(1)), torch.range(1,MATest:size(1))
+					local trainLossesMA, testLossesMA = torch.Tensor(trainLossesMA), torch.Tensor(testLossesMA)
+					local tTrain, tTest = torch.range(1,trainLossesMA:size(1)), torch.range(1,testLossesMA:size(1))
 
 					gnuplot.plot(
-					   {'Train',  tTrain, MATrain  ,  '-'},
-					   {'Test', tTest, MATest , '-'})
-					gnuplot.xlabel('t')
-					gnuplot.ylabel('loss(t)')
+					   {'Train',  tTrain, trainLossesMA,  '-'},
+					      {'Test', tTest, testLossesMA, '-'})
+					gnuplot.xlabel('time')
+					gnuplot.ylabel('loss')
 					gnuplot.plotflush()
+					--[[
+					gnuplot.figure(1)
+					gnuplot.title('Train loss over time')
+					gnuplot.plot(tTrain, trainLossesMA)
+
+					gnuplot.figure(2)
+					gnuplot.title('Test loss over time')
+					gnuplot.plot(tTest, testLossesMA)
+					]]--
+
 				end
 
 			end
