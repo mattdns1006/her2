@@ -102,7 +102,7 @@ function resultsEg()
 			eg:add(tostring(i), {1,torch.rand(x,y),torch.zeros(x,y):fill(targ)})
 		end
 	end
-	losses = eg:averageLoss(nPreds,criterion)
+	local losses = eg:averageLoss(nPreds,criterion)
 	print(losses)
 end
 

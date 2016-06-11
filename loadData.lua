@@ -8,28 +8,35 @@ loadData = {}
 function loadData.init(tid,nThreads,level)
 
 	local dataPath
-	if params.test == 0 then 
-		print("==> Training")
-		csvFile = "groundTruthTrain.csv"
-		dataPath = "data/"
-	elseif params.test == 1 and params.actualTest ==0 then
+	if tid == 1 or params.test ==1  then 
 		print("==> Testing")
 		csvFile = "groundTruthTest.csv"
 		dataPath = "data/"
+	elseif  params.test == 0 then
+		print("==> Training")
+		csvFile = "groundTruthTrain.csv"
+		dataPath = "data/"
 	else	
-		print("==> True test")
-		csvFile = "groundTruth.csv"
-		dataPath = "testData/"
+		print("Do not know train or test?")
 	end
 
 	local groundTruth = csv.csvToTable(dataPath .. csvFile) -- main truth table
 	allPaths = {}
 	local nObs = csv.length(groundTruth)
 	local obs = 1
-	for i = tid, nObs, nThreads do 
+        if tid == 1 then 	
+		tableSplit = 1
+		start = 1
+	else 
+		start = tid - 1
+		tableSplit = nThreads - 1
+	end
+	count = 0
+	for i = start, nObs, tableSplit do 
 
 	        local row = groundTruth[i]:split(",")
 	        local caseNumber, score, percScore = row[1], row[2], row[3]
+		count = count + 1
 	        local casePathHER2 = dataPath .. "roi_" .. caseNumber .. "/" .. level .."/" .. "HER2/"
 	        local casePathHE = dataPath .. "roi_" .. caseNumber .. "/" .. level .."/" .. "HE/"
 
@@ -49,6 +56,7 @@ function loadData.init(tid,nThreads,level)
 	        allPaths[obs] = {imgPaths,score,percScore,caseNumber}
 		obs = obs + 1
 	 end 
+	 print("total count for thread number " .. tid .. "=", count)
 	 collectgarbage()
 end
 
@@ -138,14 +146,14 @@ function loadData.loadXY(nWindows,windowSize)
 	Xy["target"] = target
 
 	collectgarbage()
-	return Xy 
+	return Xy, tid 
 end
 
 function loadData.main(display)
 	require "cunn"
 
 	models = require("resModels2")
-	model = models.resNetSiamese()
+
 	params = {}
 	params.windowSize = 256 
 	params.nWindows = 5
@@ -154,6 +162,7 @@ function loadData.main(display)
 	params.nLayers = 6 
 	params.test = 0
 	params.nTestPreds = 10
+	model = models.resNetSiamese()
 
 	if init == nil then
 		require "image"

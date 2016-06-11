@@ -15,7 +15,6 @@ cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
 
-cmd:option("-HEorHER2",0,"HE or HER2 data.")
 cmd:option("-nThreads",10,"Number of threads to load data.")
 cmd:option("-nWindows",10,"Number of windows at level 4.")
 cmd:option("-windowSize",216,"Size of ROI.")
@@ -33,7 +32,7 @@ cmd:option("-display",0,"Display images.")
 cmd:option("-displayFreq",80,"Display images.")
 cmd:option("-displayGraph",0,"Display graph.")
 cmd:option("-displayGraphFreq",200,"Display graph frequency.")
-cmd:option("-ma",80,"Moving average.")
+cmd:option("-ma",50,"Moving average.")
 
 cmd:option("-nFeats",24,"Number of features.")
 cmd:option("-nLayers",7,"Number of combinations of CNN/BN/AF/MP.")
@@ -50,24 +49,6 @@ cmd:text()
 params = cmd:parse(arg)
 print(params)
 
---[[
-params.nLevelAdjust = 216/params.windowSize - 1
-local level4winSize = params.windowSize 
-local level4nWindows= params.nWindows 
-
-local levelParams = {
-
-	["0"] = {level4winSize*16,level4nWindows/16},
-	["1"] = {level4winSize*8,level4nWindows/8},
-	["2"] = {level4winSize*4,level4nWindows/4},
-	["3"] = {level4winSize*2,level4nWindows/2},
-	["4"] = {level4winSize*1,level4nWindows/1},
-
-}
-params.windowSize, params.nWindows, params.nDownsample = table.unpack(levelParams[tostring(params.level)])
-]]--
-
-
 dofile("donkeys.lua")
 dofile("train.lua")
 dofile("round.lua")
@@ -83,7 +64,7 @@ optimState = {
 optimMethod = optim.adam
 
 
-function display(Xy)
+function display(Xy,outputs)
 	if params.display == 1 then 
 		if imgDisplayHER2 == nil then 
 			local initPic = torch.range(1,torch.pow(params.windowSize,2),1):reshape(params.windowSize,params.windowSize)
@@ -115,7 +96,7 @@ else
 end
 
 if params.cuda == 1 then print("==> Placing model on GPU"); model:cuda(); criterion:cuda(); end
-print("==> model"); print(model);
+--print("==> model"); print(model);
 
 function checkModel()
 	local loadData = require "loadData"
@@ -130,51 +111,89 @@ function checkModel()
 end
 if params.checkModel == 1 then checkModel(); params.run = 0; end
 
+function tensorToMA(tensor,trainOrTest)
+
+	local MA
+	if trainOrTest == "train" then 
+		MA = ma:forward(tensor)
+	else
+		MA = testMa:forward(tensor)
+	end
+	MA:resize(MA:size(1))
+	return MA
+
+end
+
+function maMean(table)
+	local tensor = torch.Tensor(table)
+	return tensor[{{-params.ma,-1}}]:mean()
+end
+
 function run() 
 	counter = Counter.new()
-	if params.test == 1 then
-		testResults = ResultsTable.new()
-		nTestPreds = 1
-	end
+	testCounter = Counter.new()
+	count = count or 1 
+	testCount = testCount or 1 
+	testResults = ResultsTable.new()
+	nTestPreds = 1
+	trainLosses = {}
+	testLosses = {}
+	ma = MovingAverage.new(params.ma)
+	testMaNumber = math.ceil(params.ma)
+	testMa = MovingAverage.new(testMaNumber)
 	while true do 
 	donkeys:addjob(function()
 				return loadData.loadXY(params.nWindows,params.windowSize)
 			end,
-			function(Xy)
-				y = {}
-				inputs, target, y.score, y.percScore, coverage, caseNo = Xy["data"], Xy["target"], Xy["score"], Xy["percScore"], Xy["coverage"], Xy["caseNo"]
-				if params.test == 0 then
-					train(inputs,target,caseNo)
+			function(Xy,tid)
+				local y = {}
+				local inputs
+				local target
+				local caseNo
+				inputs, target, y.score, y.percScore, caseNo = Xy["data"], Xy["target"], Xy["score"], Xy["percScore"], Xy["caseNo"]
+				if tid ~= 1 then
+					local trainLoss, outputs =  train(inputs,target,caseNo)
+					trainLosses[#trainLosses + 1] = trainLoss 
+					count = count + 1
+					display(Xy,outputs)
+					counter:add(caseNo)
 				else
-					local testOutput = test(inputs,target,caseNo)
-					caseNo, loss, outputs, target = table.unpack(testOutput)
-					testResults:add(tostring(caseNo),{loss,outputs[1]:reshape(1,2),target}) -- Use all or ony by one predictions 
-					if tableLength(testResults) == 16 and testResults:checkCount(nTestPreds) == true then
-						print(string.format("Average test result using first %d predictions",nTestPreds))
-						if params.actualTest == 1 then
-							print(testResults:averagePred(nTestPreds))
-						else
-							print(testResults:averageLoss(nTestPreds)["average"])
-						end
-						nTestPreds = nTestPreds + 1
 
-						if testResults:checkCount(params.nTestPreds) == true then
-							print("Finished testing")
-							finishedTesting = true
-						end
-
-					end
-		
+					local testLoss, testOutputs, testTarget = test(inputs,target)
+					testLosses[#testLosses + 1] = testLoss 
+					testCount = testCount + 1 
+					testCounter:add(caseNo)
 				end
-				count = count + 1
-				display(Xy)
-				counter:add(caseNo)
+				
+			if count > params.ma and testCount > testMaNumber and count % 20 == 0 then 
+				local trainTensor = torch.Tensor(trainLosses)
+				local testTensor = torch.Tensor(testLosses)
+				print(string.format("Train/test ma of {%d,%d} = {%f,%f}",params.ma,testMaNumber,
+						trainTensor[{{-params.ma,-1}}]:mean(),
+						testTensor[{{-testMaNumber,-1}}]:mean())
+						)
+
+				
+				if  params.displayGraph == 1 and  count % params.displayGraphFreq == 0 then 
+					local MATrain = tensorToMA(trainTensor,"train") 
+					local MATest = tensorToMA(testTensor,"test") 
+					local MATrain, MATest = torch.Tensor(trainLosses), torch.Tensor(testLosses)
+					local tTrain, tTest = torch.range(1,MATrain:size(1)), torch.range(1,MATest:size(1))
+
+					gnuplot.plot(
+					   {'Train',  tTrain, MATrain  ,  '-'},
+					   {'Test', tTest, MATest , '-'})
+					gnuplot.xlabel('t')
+					gnuplot.ylabel('loss(t)')
+					gnuplot.plotflush()
+				end
+
+			end
 
 			end
 			)
-			if params.test == 1 and finishedTesting == true then break; end
-			if count % 1000 ==0 then print(counter) end
-			if count == params.nIter and params.test ==0 then print("Finished training, saving model."); torch.save(modelPath,model); break; end
+			if count % 500 ==0 then print("Train examples"); print(counter); print("Test examples"); print(testCounter); end
+			if count == params.nIter then print("Finished training, saving model."); torch.save(modelPath,model); break; end
 
 	end
 
