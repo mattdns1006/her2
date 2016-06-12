@@ -24,20 +24,20 @@ function loadData.init(tid,nThreads,level)
         if params.test == 0 then 	
 		if tid == 1 then
 		-- If just tid = 1 thread is testing, the rest are training (i.e. full train)
-			print("TID ", tid," ==> Testing")
+			print(tid," ==> Testing")
 			csvFile = "groundTruthTest.csv"
 			dataPath = "data/"
 			tableSplit = 1
 			start = 1
 		elseif tid ~=1 then
-			print("TID ", tid," ==> Training")
+			print(tid," ==> Training")
 			csvFile = "groundTruthTrain.csv"
 			dataPath = "data/"
 			start = tid - 1
 			tableSplit = nThreads - 1
 		end
 	elseif params.test == 1 then
-		print("TID ", tid," ==> Testing")
+		print(tid," ==> Testing")
 		csvFile = "groundTruthTest.csv"
 		dataPath = "data/"
 		-- if every thread is testing

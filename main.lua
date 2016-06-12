@@ -136,6 +136,7 @@ function run()
 	testCounter = Counter.new()
 	count = count or 1 
 	testCount = testCount or 1 
+	testCheckCounter = 1
 	testResults = ResultsTable.new()
 	nTestPreds = 1
 	trainLosses = {}
@@ -207,16 +208,23 @@ function run()
 					--Testing
 						local testLoss, testOutputs, testTarget = test(inputs,target)
 
-						print(testLoss,caseNo)
+						--print(testLoss,caseNo)
+						testResults:add(caseNo,testOutputs,testTarget)
 						testLosses[#testLosses + 1] = testLoss 
 						testCount = testCount + 1 
 						testCounter:add(caseNo)
+						if testResults:checkCount(testCheckCounter) == true and tableLength(testCounter) == 16 then
+							print("Average results after "..testCheckCounter .. " predictions ==>")
+							print(testResults:averagePrediction("median"))
+							testCheckCounter = testCheckCounter + 1
+						end
 						display(Xy,testOutputs,testCount)
 				end	
 
 			end
 
 			)
+			if params.test == 1 and testCheckCounter == params.nTestPreds then print("Finished testing"); break end
 			if count % 500 ==0 then print("Train examples"); print(counter); print("Test examples"); print(testCounter); end
 			if count == params.nIter then print("Finished training, saving model."); torch.save(modelPath,model); break; end
 
