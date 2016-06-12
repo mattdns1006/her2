@@ -7,11 +7,8 @@ loadData = {}
 
 function loadData.init(tid,nThreads,level)
 
-	local dataPath
 	if tid == 1 or params.test ==1  then 
-		print("==> Testing")
-		csvFile = "groundTruthTest.csv"
-		dataPath = "data/"
+
 	elseif  params.test == 0 then
 		print("==> Training")
 		csvFile = "groundTruthTrain.csv"
@@ -20,17 +17,39 @@ function loadData.init(tid,nThreads,level)
 		print("Do not know train or test?")
 	end
 
-	local groundTruth = csv.csvToTable(dataPath .. csvFile) -- main truth table
-	allPaths = {}
-	local nObs = csv.length(groundTruth)
-	local obs = 1
-        if tid == 1 then 	
-		tableSplit = 1
-		start = 1
-	else 
-		start = tid - 1
-		tableSplit = nThreads - 1
+	local tableSplit
+	local start
+	local dataPath
+
+        if params.test == 0 then 	
+		if tid == 1 then
+		-- If just tid = 1 thread is testing, the rest are training (i.e. full train)
+			print("TID ", tid," ==> Testing")
+			csvFile = "groundTruthTest.csv"
+			dataPath = "data/"
+			tableSplit = 1
+			start = 1
+		elseif tid ~=1 then
+			print("TID ", tid," ==> Training")
+			csvFile = "groundTruthTrain.csv"
+			dataPath = "data/"
+			start = tid - 1
+			tableSplit = nThreads - 1
+		end
+	elseif params.test == 1 then
+		print("TID ", tid," ==> Testing")
+		csvFile = "groundTruthTest.csv"
+		dataPath = "data/"
+		-- if every thread is testing
+		start = tid 
+		tableSplit = nThreads 
 	end
+
+	local groundTruth = csv.csvToTable(dataPath .. csvFile) -- main truth table
+	local obs = 1
+	local nObs = csv.length(groundTruth)
+	allPaths = {}
+
 	count = 0
 	for i = start, nObs, tableSplit do 
 
@@ -39,6 +58,7 @@ function loadData.init(tid,nThreads,level)
 		count = count + 1
 	        local casePathHER2 = dataPath .. "roi_" .. caseNumber .. "/" .. level .."/" .. "HER2/"
 	        local casePathHE = dataPath .. "roi_" .. caseNumber .. "/" .. level .."/" .. "HE/"
+		print(tid,caseNumber)
 
 	        local imgPaths = {} 
 	        local j = 1

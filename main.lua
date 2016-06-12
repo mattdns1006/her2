@@ -66,7 +66,7 @@ optimState = {
 optimMethod = optim.adam
 
 
-function display(Xy,outputs)
+function display(Xy,outputs,count)
 	if params.display == 1 then 
 		if imgDisplayHER2 == nil then 
 			local initPic = torch.range(1,torch.pow(params.windowSize,2),1):reshape(params.windowSize,params.windowSize)
@@ -155,61 +155,71 @@ function run()
 				local target
 				local caseNo
 				inputs, target, y.score, y.percScore, caseNo = Xy["data"], Xy["target"], Xy["score"], Xy["percScore"], Xy["caseNo"]
-				if tid ~= 1 then
-					local trainLoss, outputs =  train(inputs,target,caseNo)
-					trainLosses[#trainLosses + 1] = trainLoss 
-					count = count + 1
-					display(Xy,outputs)
-					counter:add(caseNo)
-				else
 
-					local testLoss, testOutputs, testTarget = test(inputs,target)
-					testLosses[#testLosses + 1] = testLoss 
-					testCount = testCount + 1 
-					testCounter:add(caseNo)
-				end
-				
-			if count > params.ma and testCount > testMaNumber and count % 20 == 0 then 
-				local trainTensor = torch.Tensor(trainLosses)
-				local testTensor = torch.Tensor(testLosses)
-				local maTrain = trainTensor[{{-params.ma,-1}}]:mean()
-				local maTest = testTensor[{{-testMaNumber,-1}}]:mean()
-				trainLossesMA[#trainLossesMA+1] = maTrain
-				testLossesMA[#testLossesMA+1] = maTest
-				print(string.format("Train/test ma of {%d,%d} = {%f,%f}",params.ma,testMaNumber,
-						maTrain, maTest
-						)
-						)
+				if params.test == 0 then
+					--Training
+					if tid ~= 1 then
 
-				
-				if  params.displayGraph == 1 and  count % params.displayGraphFreq == 0 then 
-					local trainLossesMA, testLossesMA = torch.Tensor(trainLossesMA), torch.Tensor(testLossesMA)
-					local tTrain, tTest = torch.range(1,trainLossesMA:size(1)), torch.range(1,testLossesMA:size(1))
+						local trainLoss, outputs =  train(inputs,target,caseNo)
+						trainLosses[#trainLosses + 1] = trainLoss 
+						count = count + 1
+						display(Xy,outputs,count)
+						counter:add(caseNo)
+					else
+						--Train with test on one thread
 
-					gnuplot.plot(
-					   {'Train',  tTrain, trainLossesMA,  '-'},
-					      {'Test', tTest, testLossesMA, '-'})
-					gnuplot.xlabel('time')
-					gnuplot.ylabel('loss')
-					gnuplot.plotflush()
-					--[[
-					gnuplot.figure(1)
-					gnuplot.title('Train loss over time')
-					gnuplot.plot(tTrain, trainLossesMA)
+						local testLoss, testOutputs, testTarget = test(inputs,target)
+						testLosses[#testLosses + 1] = testLoss 
+						testCount = testCount + 1 
+						testCounter:add(caseNo)
+					end
 
-					gnuplot.figure(2)
-					gnuplot.title('Test loss over time')
-					gnuplot.plot(tTest, testLossesMA)
-					]]--
+					-- Metrics
+					if count > params.ma and testCount > testMaNumber and count % 20 == 0 then 
+						local trainTensor = torch.Tensor(trainLosses)
+						local testTensor = torch.Tensor(testLosses)
+						local maTrain = trainTensor[{{-params.ma,-1}}]:mean()
+						local maTest = testTensor[{{-testMaNumber,-1}}]:mean()
+						trainLossesMA[#trainLossesMA+1] = maTrain
+						testLossesMA[#testLossesMA+1] = maTest
+						print(string.format("Train/test ma of {%d,%d} = {%f,%f}",params.ma,testMaNumber,
+								maTrain, maTest
+								)
+								)
+						
+						-- Graph
+						if  params.displayGraph == 1 and  count % params.displayGraphFreq == 0 then 
+							local trainLossesMA, testLossesMA = torch.Tensor(trainLossesMA), torch.Tensor(testLossesMA)
+							local tTrain, tTest = torch.range(1,trainLossesMA:size(1)), torch.range(1,testLossesMA:size(1))
 
-				end
+							gnuplot.plot(
+							   {'Train',  tTrain, trainLossesMA,  '-'},
+							      {'Test', tTest, testLossesMA, '-'})
+							gnuplot.xlabel('time')
+							gnuplot.ylabel('loss')
+							gnuplot.plotflush()
+						end
+					end
+
+
+				else 
+
+					--Testing
+						local testLoss, testOutputs, testTarget = test(inputs,target)
+
+						print(testLoss,caseNo)
+						testLosses[#testLosses + 1] = testLoss 
+						testCount = testCount + 1 
+						testCounter:add(caseNo)
+						display(Xy,testOutputs,testCount)
+				end	
 
 			end
 
-			end
 			)
 			if count % 500 ==0 then print("Train examples"); print(counter); print("Test examples"); print(testCounter); end
 			if count == params.nIter then print("Finished training, saving model."); torch.save(modelPath,model); break; end
+
 
 	end
 
