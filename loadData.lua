@@ -2,6 +2,7 @@ csv = require "csv"
 require "paths"
 local models = require "models"
 local filterModel = torch.load("filter/filter.model"):cuda()
+dofile("oneHotEncode.lua")
 
 loadData = {}
 
@@ -58,7 +59,7 @@ function loadData.init(tid,nThreads,level)
 		count = count + 1
 	        local casePathHER2 = dataPath .. "roi_" .. caseNumber .. "/" .. level .."/" .. "HER2/"
 	        local casePathHE = dataPath .. "roi_" .. caseNumber .. "/" .. level .."/" .. "HE/"
-		print(tid,caseNumber)
+		--print(tid,caseNumber)
 
 	        local imgPaths = {} 
 	        local j = 1
@@ -153,10 +154,14 @@ function loadData.loadXY(nWindows,windowSize)
 	allTensors[1] = generateWindows(params.nHER2Windows,currentTable[1]["HER2"]) 
 	allTensors[2] = generateWindows(params.nHEWindows,currentTable[1]["HE"]) 
 	Xy["data"] = allTensors 
+	Xy["caseNo"] = currentTable[4] 
+	Xy["score"] = currentTable[2] -- Normalize
+	Xy["percScore"] = currentTable[3] -- Normalize
+
+	--[[
 	Xy["score"] = currentTable[2]/3 -- Normalize
 	Xy["percScore"] = currentTable[3]/100 -- Normalize
-	Xy["caseNo"] = currentTable[4] 
-	--Xy["coverage"] = params.nWindows*(torch.pow(params.windowSize,2)/torch.pow(imgDim,2))/#currentTable[1]
+
 
 	local target = torch.zeros(1,2)
 	--local target = torch.zeros(params.nWindows + 1,2)
@@ -164,6 +169,9 @@ function loadData.loadXY(nWindows,windowSize)
 	target[{{},{2}}]:fill(Xy["percScore"])
 	target = target:cuda()
 	Xy["target"] = target
+
+	]]--
+	Xy["target"] = oneHotEncode(Xy["score"],Xy["percScore"]):cuda()
 
 	collectgarbage()
 	return Xy, tid 
@@ -181,13 +189,13 @@ function loadData.main(display)
 	params.level = 2 
 	params.nFeats = 16
 	params.nLayers = 6 
-	params.test = 0
+	params.test = 0 
 	params.nTestPreds = 10
 	--model = models.resNetSiamese()
 
 	if init == nil then
 		require "image"
-		loadData.init(1,1,params.level)
+		loadData.init(2,2,params.level)
 		init = "Not nil"
 	end
 

@@ -18,10 +18,11 @@ end
 	
 local function basicblock(nInputPlane, n, stride)
 	local s = nn.Sequential()
-	s:add(Convolution(nInputPlane,n,3,3,stride,stride,1,1))
+
+	s:add(Convolution(nInputPlane,n,3,3,1,1,1,1))
 	s:add(SBatchNorm(n))
 	s:add(ReLU(true))
-	s:add(Convolution(n,n,3,3,1,1,1,1))
+	s:add(Convolution(n,n,3,3,stride,stride,1,1))
 	s:add(SBatchNorm(n))
 
 	return nn.Sequential()
@@ -44,6 +45,8 @@ function models.resNetSiamese()
 	local function miniNet(nWindows)
 		local model = nn.Sequential()
 		local nFeats = params.nFeats
+		--model:add(Convolution(3,22,3,3,1,1,1,1))
+		--model:add(SBatchNorm(22))
 		local nInputs
 		for i = 1, nLayers do
 			if i == 1 then nInputs = 3; else nInputs = nFeats; end
@@ -68,20 +71,22 @@ function models.resNetSiamese()
 	model:add(paraNet):add(nn.JoinTable(2))
 	model:add(nn.Linear(50,25))
 	model:add(ReLU(true))
-	model:add(nn.Linear(25,2))
+	model:add(nn.Linear(25,13))
+	model:add(nn.Sigmoid())
 	layers.init(model)
 	return model 
 end
 --[[
 params = {}
 params.windowSize = 256 
-params.nWindows = 5 
+params.nHER2Windows = 5 
+params.nHEWindows = 5 
 params.nFeats = 24
-local x = torch.rand(params.nWindows,3,params.windowSize,params.windowSize):cuda()
+local x = torch.rand(params.nHER2Windows,3,params.windowSize,params.windowSize):cuda()
+local x = torch.rand(params.nHEWindows,3,params.windowSize,params.windowSize):cuda()
 local X = {x,x}
 m = models.resNetSiamese():cuda()
 print(m:forward(X))
-]]--
-
+--]]
 return models
 

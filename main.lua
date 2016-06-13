@@ -53,6 +53,7 @@ dofile("train.lua")
 dofile("round.lua")
 dofile("counter.lua")
 dofile("resultsTable.lua")
+dofile("oneHotEncode.lua")
 
 optimState = {
 	learningRate = params.lr,
@@ -63,6 +64,7 @@ optimState = {
 optimMethod = optim.adam
 
 function display(Xy,outputs,count)
+	local score, percScore = oneHotDecode(outputs)
 	if params.display == 1 then 
 		if imgDisplayHER2 == nil then 
 			local initPic = torch.range(1,torch.pow(params.windowSize,2),1):reshape(params.windowSize,params.windowSize)
@@ -70,8 +72,9 @@ function display(Xy,outputs,count)
 			imgDisplayHE = image.display{image=initPic, zoom=2, offscreen=false}
 		end
 		if count % params.displayFreq == 0 then 
-			local title = string.format("Case number %d, Targets {%f,%f}, predictions {%f,%f}.", Xy.caseNo, Xy.score, Xy.percScore, 
-							round(outputs:squeeze()[1],3), round(outputs:squeeze()[2],3))
+			local title = string.format("Case number %d, Targets {%f,%f}, predictions {%f,%f}.", Xy.caseNo, Xy.score, 								Xy.percScore, 
+							score, percScore)
+							--round(outputs:squeeze()[1],3), round(outputs:squeeze()[2],3))
 			image.display{image = Xy.data[1], win = imgDisplayHER2, legend = title}
 			image.display{image = Xy.data[2], win = imgDisplayHE, legend = title}
 		end
@@ -79,6 +82,7 @@ function display(Xy,outputs,count)
 end
 
 criterion = nn.MSECriterion()
+--criterion = nn.CrossEntropyCriterion()
 local resModels2 = require "resModels2"
 modelName = string.format("%s_%d_%d_%d_%d_%d_%d",params.modelName, params.level, params.nHER2Windows, params.nHEWindows,params.windowSize, params.nFeats, params.nIter)
 print(string.format("Model %s, for level %d,  %d features, with %d windows,(%d, %d} window size (sqrt(area))",
@@ -93,7 +97,6 @@ else
 end
 
 if params.cuda == 1 then print("==> Placing model on GPU"); model:cuda(); criterion:cuda(); end
---print("==> model"); print(model);
 
 function tensorToMA(tensor,trainOrTest)
 	local MA
@@ -202,6 +205,7 @@ function run()
 			end
 
 			)
+			--if count > 100 then break end
 			if params.test == 1 and testCheckCounter == params.nTestPreds then print("Finished testing"); break end
 			if count % 500 ==0 then print("Train examples"); print(counter); print("Test examples"); print(testCounter); end
 			if count == params.nIter then print("Finished training, saving model."); torch.save(modelPath,model); break; end

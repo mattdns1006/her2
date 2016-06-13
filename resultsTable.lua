@@ -12,7 +12,11 @@ function ResultsTable.new()
 	return setmetatable(self,ResultsTable)
 end
 
-function ResultsTable:add (x,y,target)
+function ResultsTable:add (x,yPred,tar)
+	local y1,y2 = oneHotDecode(yPred)
+	local y = torch.Tensor{y1,y2}:reshape(1,2)
+	local t1,t2= oneHotDecode(tar)
+	local target = torch.Tensor{t1,t2}:reshape(1,2)
 	local k = tostring(x)
 	-- Checks to see if k exists in the table and adds v to mini table
 	if self[k] == nil then
