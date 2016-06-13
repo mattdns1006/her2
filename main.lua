@@ -3,11 +3,9 @@ require "image"
 require "nn"
 require "gnuplot"
 require "cunn"
---require "cutorch"
 require "xlua"
 require "optim"
 require "gnuplot"
-
 dofile("movingAverage.lua")
 
 -- Command line options
@@ -16,7 +14,6 @@ cmd:text()
 cmd:text("Options")
 
 cmd:option("-nThreads",10,"Number of threads to load data.")
---cmd:option("-nWindows",10,"Number of windows at level 4.")
 cmd:option("-nHER2Windows",10,"Number of windows.")
 cmd:option("-nHEWindows",4,"Number of windows.")
 cmd:option("-windowSize",216,"Size of ROI.")
@@ -65,7 +62,6 @@ optimState = {
 }
 optimMethod = optim.adam
 
-
 function display(Xy,outputs,count)
 	if params.display == 1 then 
 		if imgDisplayHER2 == nil then 
@@ -83,7 +79,6 @@ function display(Xy,outputs,count)
 end
 
 criterion = nn.MSECriterion()
-local resModels = require "resModels"
 local resModels2 = require "resModels2"
 modelName = string.format("%s_%d_%d_%d_%d_%d_%d",params.modelName, params.level, params.nHER2Windows, params.nHEWindows,params.windowSize, params.nFeats, params.nIter)
 print(string.format("Model %s, for level %d,  %d features, with %d windows,(%d, %d} window size (sqrt(area))",
@@ -100,21 +95,7 @@ end
 if params.cuda == 1 then print("==> Placing model on GPU"); model:cuda(); criterion:cuda(); end
 --print("==> model"); print(model);
 
-function checkModel()
-	local loadData = require "loadData"
-	loadData.init(1,1,params.level)
-	Xy = loadData.loadXY(params.nWindows,params.windowSize)
-	y = {}
-	inputs, target, y.score, y.percScore, coverage, caseNo = Xy["data"], Xy["target"], Xy["score"], Xy["percScore"], Xy["coverage"], Xy["caseNo"]
-	outputs = model:forward(inputs)
-	print("Input/Output sizes")
-	print(inputs:size())
-	print(outputs:size())
-end
-if params.checkModel == 1 then checkModel(); params.run = 0; end
-
 function tensorToMA(tensor,trainOrTest)
-
 	local MA
 	if trainOrTest == "train" then 
 		MA = ma:forward(tensor)
@@ -123,7 +104,6 @@ function tensorToMA(tensor,trainOrTest)
 	end
 	MA:resize(MA:size(1))
 	return MA
-
 end
 
 function maMean(table)
@@ -138,14 +118,12 @@ function run()
 	testCount = testCount or 1 
 	testCheckCounter = 1
 	testResults = ResultsTable.new()
-	nTestPreds = 1
 	trainLosses = {}
 	testLosses = {}
 	trainLossesMA = {}
 	testLossesMA = {}
 	ma = MovingAverage.new(params.ma)
-	testMaNumber = math.ceil(params.ma)
-	testMa = MovingAverage.new(testMaNumber)
+	testMa = MovingAverage.new(params.ma)
 	while true do 
 	donkeys:addjob(function()
 				return loadData.loadXY(params.nWindows,params.windowSize)
@@ -176,14 +154,14 @@ function run()
 					end
 
 					-- Metrics
-					if count > params.ma and testCount > testMaNumber and count % 20 == 0 then 
+					if count > params.ma and testCount > params.ma and count % 40 == 0 then 
 						local trainTensor = torch.Tensor(trainLosses)
 						local testTensor = torch.Tensor(testLosses)
 						local maTrain = trainTensor[{{-params.ma,-1}}]:mean()
-						local maTest = testTensor[{{-testMaNumber,-1}}]:mean()
+						local maTest = testTensor[{{-params.ma,-1}}]:mean()
 						trainLossesMA[#trainLossesMA+1] = maTrain
 						testLossesMA[#testLossesMA+1] = maTest
-						print(string.format("Train/test ma of {%d,%d} = {%f,%f}",params.ma,testMaNumber,
+						print(string.format("Train/test ma of {%d,%d} = {%f,%f}",params.ma,params.ma,
 								maTrain, maTest
 								)
 								)
@@ -215,7 +193,7 @@ function run()
 						testCounter:add(caseNo)
 						if testResults:checkCount(testCheckCounter) == true and tableLength(testCounter) == 16 then
 							print("Average results after "..testCheckCounter .. " predictions ==>")
-							print(testResults:averagePrediction("median"))
+							print(testResults:averagePrediction("mean"))
 							testCheckCounter = testCheckCounter + 1
 						end
 						display(Xy,testOutputs,testCount)
