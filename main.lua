@@ -12,7 +12,6 @@ dofile("movingAverage.lua")
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Options")
-
 cmd:option("-nThreads",10,"Number of threads to load data.")
 cmd:option("-nHER2Windows",10,"Number of windows.")
 cmd:option("-nHEWindows",4,"Number of windows.")
@@ -31,7 +30,7 @@ cmd:option("-display",0,"Display images.")
 cmd:option("-displayFreq",80,"Display images.")
 cmd:option("-displayGraph",0,"Display graph.")
 cmd:option("-displayGraphFreq",200,"Display graph frequency.")
-cmd:option("-ma",25,"Moving average.")
+cmd:option("-ma",100,"Moving average.")
 
 cmd:option("-nFeats",24,"Number of features.")
 cmd:option("-nLayers",7,"Number of combinations of CNN/BN/AF/MP.")
@@ -82,7 +81,7 @@ function display(Xy,outputs,count)
 end
 
 criterion = nn.MSECriterion()
---criterion = nn.CrossEntropyCriterion()
+--criterion = nn.BCECriterion()
 local resModels2 = require "resModels2"
 modelName = string.format("%s_%d_%d_%d_%d_%d_%d",params.modelName, params.level, params.nHER2Windows, params.nHEWindows,params.windowSize, params.nFeats, params.nIter)
 print(string.format("Model %s, for level %d,  %d features, with %d windows,(%d, %d} window size (sqrt(area))",
@@ -145,13 +144,20 @@ function run()
 						local trainLoss, outputs =  train(inputs,target,caseNo)
 						trainLosses[#trainLosses + 1] = trainLoss 
 						count = count + 1
-						display(Xy,outputs,count)
+						--display(Xy,outputs,count)
 						counter:add(caseNo)
+
+						if count > params.ma and testCount < params.ma then
+							local trainTensor = torch.Tensor(trainLosses)
+							local maTrain = trainTensor[{{-params.ma,-1}}]:mean()
+							print("Train loss ma = ", maTrain)
+						end
 					else
 						--Train with test on one thread
 
 						local testLoss, testOutputs, testTarget = test(inputs,target)
 						testLosses[#testLosses + 1] = testLoss 
+						display(Xy,testOutputs,count)
 						testCount = testCount + 1 
 						testCounter:add(caseNo)
 					end
@@ -174,12 +180,21 @@ function run()
 							local trainLossesMA, testLossesMA = torch.Tensor(trainLossesMA), torch.Tensor(testLossesMA)
 							local tTrain, tTest = torch.range(1,trainLossesMA:size(1)), torch.range(1,testLossesMA:size(1))
 
+							gnuplot.figure(1)
+							gnuplot.title("Train for model "..modelName)
+							gnuplot.plot(tTrain,trainLossesMA)
+							gnuplot.figure(2)
+							gnuplot.title("Test for model "..modelName)
+							gnuplot.plot(tTest,testLossesMA)
+
+							--[[
 							gnuplot.plot(
 							   {'Train',  tTrain, trainLossesMA,  '-'},
 							      {'Test', tTest, testLossesMA, '-'})
 							gnuplot.xlabel('time')
 							gnuplot.ylabel('loss')
 							gnuplot.plotflush()
+							]]--
 						end
 					end
 

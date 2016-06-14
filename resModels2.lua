@@ -22,8 +22,11 @@ local function basicblock(nInputPlane, n, stride)
 	s:add(Convolution(nInputPlane,n,3,3,1,1,1,1))
 	s:add(SBatchNorm(n))
 	s:add(ReLU(true))
-	s:add(Convolution(n,n,3,3,stride,stride,1,1))
-	s:add(SBatchNorm(n))
+	s:add(Max(3,3,stride,stride,1,1))
+	--s:add(Convolution(n,n,2,2,1,1,1,1))
+	--s:add(SBatchNorm(n))
+	--s:add(Max(3,3,stride,stride,1,1))
+
 
 	return nn.Sequential()
 	 :add(nn.ConcatTable()
@@ -74,6 +77,7 @@ function models.resNetSiamese()
 	model:add(nn.Linear(25,13))
 	model:add(nn.Sigmoid())
 	layers.init(model)
+	model:float()
 	return model 
 end
 --[[
@@ -87,6 +91,6 @@ local x = torch.rand(params.nHEWindows,3,params.windowSize,params.windowSize):cu
 local X = {x,x}
 m = models.resNetSiamese():cuda()
 print(m:forward(X))
---]]
+]]--
 return models
 

@@ -14,9 +14,9 @@ end
 
 function ResultsTable:add (x,yPred,tar)
 	local y1,y2 = oneHotDecode(yPred)
-	local y = torch.Tensor{y1,y2}:reshape(1,2)
+	local y = torch.Tensor{y1/3,y2/100}:reshape(1,2)
 	local t1,t2= oneHotDecode(tar)
-	local target = torch.Tensor{t1,t2}:reshape(1,2)
+	local target = torch.Tensor{t1/3,t2/100}:reshape(1,2)
 	local k = tostring(x)
 	-- Checks to see if k exists in the table and adds v to mini table
 	if self[k] == nil then
@@ -61,6 +61,7 @@ function ResultsTable:averagePrediction(meanOrMedian)
 		local target = self[k]["target"]
 		local targetScore, targetPredScore = target[{{},{1}}], target[{{},{2}}]
 		self[k]["meanLoss"] = {}
+		local criterion = nn.MSECriterion()
 		self[k]["meanLoss"][1] = criterion:forward(predMu,target)
 		self[k]["meanLoss"][2] = criterion:forward(predMuScore,targetScore)
 		self[k]["meanLoss"][3] = criterion:forward(predMuPercScore,targetPredScore)
