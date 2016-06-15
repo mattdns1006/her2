@@ -53,6 +53,8 @@ dofile("round.lua")
 dofile("counter.lua")
 dofile("resultsTable.lua")
 dofile("oneHotEncode.lua")
+dofile("confusion.lua")
+cmTest = ConfusionMatrix.new(4,4)
 
 optimState = {
 	learningRate = params.lr,
@@ -160,6 +162,13 @@ function run()
 						display(Xy,testOutputs,count)
 						testCount = testCount + 1 
 						testCounter:add(caseNo)
+
+						-- For confusion matrix
+						local predScore,_ = oneHotDecode(testOutputs)
+						local tarScore,_ = oneHotDecode(testTarget)
+
+						cmTest:add(round(predScore),tarScore)
+
 					end
 
 					-- Metrics
@@ -175,6 +184,8 @@ function run()
 								)
 								)
 						
+						cmTest:performance()
+						cmTest:reset()
 						-- Graph
 						if  params.displayGraph == 1 and  count % params.displayGraphFreq == 0 then 
 							local trainLossesMA, testLossesMA = torch.Tensor(trainLossesMA), torch.Tensor(testLossesMA)
@@ -204,11 +215,18 @@ function run()
 					--Testing
 						local testLoss, testOutputs, testTarget = test(inputs,target)
 
-						--print(testLoss,caseNo)
 						testResults:add(caseNo,testOutputs,testTarget)
 						testLosses[#testLosses + 1] = testLoss 
 						testCount = testCount + 1 
 						testCounter:add(caseNo)
+
+						local predScore,_ = oneHotDecode(testOutputs)
+						local tarScore,_ = oneHotDecode(testTarget)
+
+						cmTest:add(round(predScore),tarScore)
+						print(cmTest.cm)
+						cmTest:performance()
+
 						if testResults:checkCount(testCheckCounter) == true and tableLength(testCounter) == 16 then
 							print("Average results after "..testCheckCounter .. " predictions ==>")
 							print(testResults:averagePrediction("mean"))
