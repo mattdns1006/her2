@@ -39,7 +39,7 @@ cmd:option("-depth",50,"Depth of resnet.")
 cmd:option("-shortcut","C","Shortcut.")
 cmd:option("-shortcutType","C","Shortcut type.")
 
-cmd:option("-lr",0.0008,"Learning rate.")
+cmd:option("-lr",0.0003,"Learning rate.")
 cmd:option("-lrDecay",1.1,"Learning rate decay")
 cmd:option("-lrChange",2000,"Learning rate change frequency.")
 cmd:option("-nIter",30000,"Number of iterations.")
@@ -54,7 +54,7 @@ dofile("counter.lua")
 dofile("resultsTable.lua")
 dofile("oneHotEncode.lua")
 dofile("confusion.lua")
-cmTest = ConfusionMatrix.new(4,4)
+
 
 optimState = {
 	learningRate = params.lr,
@@ -128,6 +128,9 @@ function run()
 	testLossesMA = {}
 	ma = MovingAverage.new(params.ma)
 	testMa = MovingAverage.new(params.ma)
+
+	cmTrain = ConfusionMatrix.new(4,4)
+	cmTest = ConfusionMatrix.new(4,4)
 	while true do 
 	donkeys:addjob(function()
 				return loadData.loadXY(params.nWindows,params.windowSize)
@@ -154,12 +157,18 @@ function run()
 							local maTrain = trainTensor[{{-params.ma,-1}}]:mean()
 							print("Train loss ma = ", maTrain)
 						end
+
+						-- For confusion matrix
+						local predScore,_ = oneHotDecode(outputs)
+						local tarScore,_ = oneHotDecode(target)
+
+						cmTrain:add(round(predScore),tarScore)
 					else
 						--Train with test on one thread
 
 						local testLoss, testOutputs, testTarget = test(inputs,target)
 						testLosses[#testLosses + 1] = testLoss 
-						display(Xy,testOutputs,count)
+						--display(Xy,testOutputs,count)
 						testCount = testCount + 1 
 						testCounter:add(caseNo)
 
@@ -170,7 +179,23 @@ function run()
 						cmTest:add(round(predScore),tarScore)
 
 					end
+					
+					if count % 100 == 0 then
+						print("Train confusion matrix after last 100 obs")
+						print(cmTrain.cm)
+						print(cmTrain:performance())
+						cmTrain:reset()
+						print("Test confusion matrix since")
+						print(cmTest.cm)
+						print(cmTest:performance())
+					end
 
+					if testCount % 100 ==0  and tid == 1 then
+						print("Test confusion matrix after last 100 obs")
+						print(cmTest.cm)
+						print(cmTest:performance())
+						cmTest:reset()
+					end
 					-- Metrics
 					if count > params.ma and testCount > params.ma and count % 40 == 0 then 
 						local trainTensor = torch.Tensor(trainLosses)
@@ -184,8 +209,6 @@ function run()
 								)
 								)
 						
-						cmTest:performance()
-						cmTest:reset()
 						-- Graph
 						if  params.displayGraph == 1 and  count % params.displayGraphFreq == 0 then 
 							local trainLossesMA, testLossesMA = torch.Tensor(trainLossesMA), torch.Tensor(testLossesMA)
@@ -223,13 +246,14 @@ function run()
 						local predScore,_ = oneHotDecode(testOutputs)
 						local tarScore,_ = oneHotDecode(testTarget)
 
-						cmTest:add(round(predScore),tarScore)
-						print(cmTest.cm)
-						cmTest:performance()
-
 						if testResults:checkCount(testCheckCounter) == true and tableLength(testCounter) == 16 then
+
+							local overall, overallScoreLoss, overallPercScoreLoss, cm = testResults:averagePrediction("mean")
 							print("Average results after "..testCheckCounter .. " predictions ==>")
-							print(testResults:averagePrediction("mean"))
+							print(overall,overallScoreLoss,overallPercScoreLoss)
+							print("ConfusionMatrix ==>")
+							print(cm.cm)
+							print(cm:performance())
 							testCheckCounter = testCheckCounter + 1
 						end
 						display(Xy,testOutputs,testCount)

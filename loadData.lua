@@ -77,7 +77,7 @@ function loadData.init(tid,nThreads,level)
 	        allPaths[obs] = {imgPaths,score,percScore,caseNumber}
 		obs = obs + 1
 	 end 
-	 print("total count for thread number " .. tid .. "=", count)
+	 --print("total count for thread number " .. tid .. "=", count)
 	 collectgarbage()
 end
 

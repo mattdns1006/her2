@@ -12,6 +12,7 @@ function ResultsTable.new()
 	return setmetatable(self,ResultsTable)
 end
 
+
 function ResultsTable:add (x,yPred,tar)
 	local y1,y2 = oneHotDecode(yPred)
 	local y = torch.Tensor{y1/3,y2/100}:reshape(1,2)
@@ -47,6 +48,9 @@ function ResultsTable:averagePrediction(meanOrMedian)
 	local overall = {} 
 	local overallScoreLoss = {}
 	local overallPercScoreLoss = {}
+	local cm = ConfusionMatrix.new(4,4)
+	cm:reset()
+	
 	for k, v in pairs(self) do
 		local predictions = torch.cat(v["predictions"],1)
 		self[k]["predictionsT"] = predictions
@@ -69,38 +73,12 @@ function ResultsTable:averagePrediction(meanOrMedian)
 		overall[#overall + 1] = self[k]["meanLoss"][1]
 		overallScoreLoss[#overallScoreLoss+ 1] = self[k]["meanLoss"][2]
 		overallPercScoreLoss[#overallPercScoreLoss+ 1] = self[k]["meanLoss"][3]
-
+		--print(round(predMuScore:squeeze()*3),targetScore:squeeze()*3)
+		cm:add(round(predMuScore:squeeze()*3),targetScore:squeeze()*3)
 	end
 	overall = torch.Tensor(overall):mean()
 	overallScoreLoss = torch.Tensor(overallScoreLoss):mean()
 	overallPercScoreLoss = torch.Tensor(overallPercScoreLoss):mean()
-	return {overall,overallScoreLoss,overallPercScoreLoss} 
+	return overall,overallScoreLoss,overallPercScoreLoss,cm
 end
-
-
-function resultsEg()
-
-	eg = ResultsTable.new()
-	require "nn"
-	require "cunn"
-	m = torch.load("models/resNet1.model_3_20_10_128_12_30000")
-	criterion = nn.MSECriterion():cuda()
-	params = {}
-	params.windowSize = 128
-	params.nHER2Windows = 20
-	params.nHEWindows = 10
-
-	for caseNumber = 1, 10 do -- 10 test examples
-		y = torch.Tensor{torch.uniform(),torch.uniform()}:reshape(1,2):cuda() --constant
-		for j =1, 3 do -- 3 predictions per example
-			local x1 = torch.rand(params.nHER2Windows,3,params.windowSize,params.windowSize):cuda()
-			local x2 = torch.rand(params.nHEWindows,3,params.windowSize,params.windowSize):cuda()
-			X = {x1,x2}
-
-			yPred = m:forward(X)
-			eg:add(caseNumber,yPred,y)
-		end
-	end
-end
-
 
