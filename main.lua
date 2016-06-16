@@ -39,9 +39,9 @@ cmd:option("-depth",50,"Depth of resnet.")
 cmd:option("-shortcut","C","Shortcut.")
 cmd:option("-shortcutType","C","Shortcut type.")
 
-cmd:option("-lr",0.0003,"Learning rate.")
+cmd:option("-lr",0.00005,"Learning rate.")
 cmd:option("-lrDecay",1.1,"Learning rate decay")
-cmd:option("-lrChange",2000,"Learning rate change frequency.")
+cmd:option("-lrChange",1000,"Learning rate change frequency.")
 cmd:option("-nIter",30000,"Number of iterations.")
 cmd:text()
 params = cmd:parse(arg)
@@ -58,7 +58,7 @@ dofile("confusion.lua")
 
 optimState = {
 	learningRate = params.lr,
-	beta1 = 0.9,
+	beta1 = 0.96,
 	beta2 = 0.999,
 	epsilon = 1e-8
 }
@@ -91,6 +91,10 @@ function display(Xy,outputs,count)
 		end
 	end
 end
+function fileExists(name)
+	local f=io.open(name,"r")
+	if f~=nil then io.close(f) return true else return false end
+end
 
 criterion = nn.MSECriterion()
 --criterion = nn.BCECriterion()
@@ -106,8 +110,8 @@ if params.loadModel == 1 then
 	model = torch.load(modelPath)
 else
 	--model = resModels2.resNetSiamese()
-	model = resModels2.resNet()
-	--model = resModels2.simple()
+	--model = resModels2.resNet()
+	model = resModels2.nonResNet()
 end
 print(model)
 
@@ -145,6 +149,7 @@ function run()
 
 	cmTrain = ConfusionMatrix.new(4,4)
 	cmTest = ConfusionMatrix.new(4,4)
+	break_loop_path = "/home/msmith/breakLoop.lua"
 	while true do 
 	donkeys:addjob(function()
 				return loadData.loadXY(params.nWindows,params.windowSize)
@@ -279,6 +284,8 @@ function run()
 			end
 
 			)
+			
+			if fileExists(break_loop_path)==true then print("Break file made! Breaking. ") break end
 			--if count > 100 then break end
 			if params.test == 1 and testCheckCounter == params.nTestPreds then print("Finished testing"); break end
 			if count % 500 ==0 then print("Train examples"); print(counter); print("Test examples"); print(testCounter); end

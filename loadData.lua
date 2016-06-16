@@ -146,7 +146,9 @@ function loadData.loadXY(nWindows,windowSize)
 				end
 				return img:reshape(1,3,windowSize,windowSize)
 			end
-			tensors[i] = suitableImg(HER2orHETable) 
+			--local img = suitableImg(HER2orHETable)
+			--img:csub(img:mean())
+			tensors[i] = suitableImg(HER2orHETable)
 		end
 		return torch.cat(tensors,1):cuda()
 	end
