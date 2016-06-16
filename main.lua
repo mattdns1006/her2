@@ -64,6 +64,16 @@ optimState = {
 }
 optimMethod = optim.adam
 
+--[[
+optimState = {
+	learningRate = params.lr,
+	weightDecay = 0,
+	momentum = 0.96,
+	learningRateDecay = 1e-7
+}
+optimMethod = optim.sgd
+]]--
+
 function display(Xy,outputs,count)
 	local score, percScore = oneHotDecode(outputs)
 	if params.display == 1 then 
@@ -76,8 +86,8 @@ function display(Xy,outputs,count)
 			local title = string.format("Case number %d, Targets {%f,%f}, predictions {%f,%f}.", Xy.caseNo, Xy.score, 								Xy.percScore, 
 							score, percScore)
 							--round(outputs:squeeze()[1],3), round(outputs:squeeze()[2],3))
-			image.display{image = Xy.data[1], win = imgDisplayHER2, legend = title}
-			image.display{image = Xy.data[2], win = imgDisplayHE, legend = title}
+			image.display{image = Xy.data, win = imgDisplayHER2, legend = title}
+			--image.display{image = Xy.data, win = imgDisplayHE, legend = title}
 		end
 	end
 end
@@ -85,6 +95,7 @@ end
 criterion = nn.MSECriterion()
 --criterion = nn.BCECriterion()
 local resModels2 = require "resModels2"
+params.nHEWindows = 0
 modelName = string.format("%s_%d_%d_%d_%d_%d_%d",params.modelName, params.level, params.nHER2Windows, params.nHEWindows,params.windowSize, params.nFeats, params.nIter)
 print(string.format("Model %s, for level %d,  %d features, with %d windows,(%d, %d} window size (sqrt(area))",
 		    modelName,params.level, params.nFeats, params.nHER2Windows, params.nHEWindows, params.windowSize))
@@ -94,8 +105,11 @@ if params.loadModel == 1 then
 	print("==> Loading model "..modelName..".")
 	model = torch.load(modelPath)
 else
-	model = resModels2.resNetSiamese()
+	--model = resModels2.resNetSiamese()
+	model = resModels2.resNet()
+	--model = resModels2.simple()
 end
+print(model)
 
 if params.cuda == 1 then print("==> Placing model on GPU"); model:cuda(); criterion:cuda(); end
 
@@ -149,8 +163,11 @@ function run()
 						local trainLoss, outputs =  train(inputs,target,caseNo)
 						trainLosses[#trainLosses + 1] = trainLoss 
 						count = count + 1
-						--display(Xy,outputs,count)
+						display(Xy,outputs,count)
 						counter:add(caseNo)
+						if count < params.ma then
+							print("Train loss = ", trainLoss)
+						end
 
 						if count > params.ma and testCount < params.ma then
 							local trainTensor = torch.Tensor(trainLosses)

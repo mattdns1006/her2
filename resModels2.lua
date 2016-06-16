@@ -12,7 +12,7 @@ local SBatchNorm = nn.SpatialBatchNormalization
 
 local function shortcut(nInputPlane, nOutputPlane, stride)
 	return nn.Sequential()
-		:add(Convolution(nInputPlane,nOutputPlane,1,1,stride,stride))
+		:add(Convolution(nInputPlane,nOutputPlane,1,1,stride,stride,0,0))
 		:add(SBatchNorm(nOutputPlane))
 end
 	
@@ -22,8 +22,13 @@ local function basicblock(nInputPlane, n, stride)
 	s:add(Convolution(nInputPlane,n,3,3,1,1,1,1))
 	s:add(SBatchNorm(n))
 	s:add(ReLU(true))
+	--[[
+	s:add(Convolution(n,n,2,2,1,1,1,1))
+	s:add(SBatchNorm(n))
+	s:add(ReLU(true))
+	]]--
 	s:add(Max(3,3,stride,stride,1,1))
-	--s:add(Convolution(n,n,2,2,1,1,1,1))
+	--s:add(Convolution(n,n,3,3,2,2,1,1))
 	--s:add(SBatchNorm(n))
 	--s:add(Max(3,3,stride,stride,1,1))
 
@@ -37,6 +42,85 @@ local function basicblock(nInputPlane, n, stride)
 end
 
 models = {}
+
+function models.simple()
+
+	local model 
+	local nLayers = math.ceil(math.log(params.windowSize,2)) - 1
+	local function miniNet(nWindows)
+		local model = nn.Sequential()
+		local nFeats = params.nFeats
+		local n = nFeats
+		local nInputs
+		for i = 1, nLayers do
+			if i == 1 then nInputs = 3; else nInputs = nFeats; end
+			model:add(Convolution(nInputs,n,3,3,1,1,1,1))
+			model:add(SBatchNorm(n))
+			model:add(ReLU(true))
+			model:add(Convolution(n,n,3,3,1,1,1,1))
+			model:add(SBatchNorm(n))
+			model:add(ReLU(true))
+			model:add(Max(3,3,2,2,1,1))
+
+		end
+		model:add(nn.View(nWindows*nFeats*4,1))
+		model:add(Convolution1D(1,10,1,1))
+		model:add(nn.BatchNormalization(10))
+		model:add(ReLU(true))
+		model:add(Max1D(3,2))
+		model:add(Convolution1D(10,1,1,1))
+		model:add(ReLU(true))
+		local nOutputs = model:forward(torch.rand(nWindows,3,params.windowSize,params.windowSize)):size(1)
+		model:add(nn.View(1,nOutputs))
+		model:add(nn.Linear(nOutputs,25))
+		model:add(ReLU(true))
+		model:add(nn.Linear(25,13))
+		model:add(nn.Sigmoid())
+		layers.init(model)
+		return model
+	end
+
+	model = miniNet(params.nHER2Windows)
+	layers.init(model)
+	return model 
+end
+
+function models.resNet()
+
+	local model 
+	local nLayers = math.ceil(math.log(params.windowSize,2)) - 1
+	local function miniNet(nWindows)
+		local model = nn.Sequential()
+		local nFeats = params.nFeats
+		local nIn = 32
+		--model:add(Convolution(3,nIn,3,3,1,1,1,1))
+		--model:add(SBatchNorm(nIn))
+		local nInputs
+		for i = 1, nLayers do
+			if i == 1 then nInputs = 3; else nInputs = nFeats; end
+			model:add(basicblock(nInputs,nFeats,2))
+		end
+		model:add(nn.View(nWindows*nFeats*4,1))
+		model:add(Convolution1D(1,10,1,1))
+		model:add(nn.BatchNormalization(10))
+		model:add(ReLU(true))
+		model:add(Max1D(3,2))
+		model:add(Convolution1D(10,1,1,1))
+		model:add(ReLU(true))
+		local nOutputs = model:forward(torch.rand(nWindows,3,params.windowSize,params.windowSize)):size(1)
+		model:add(nn.View(1,nOutputs))
+		model:add(nn.Linear(nOutputs,25))
+		model:add(ReLU(true))
+		model:add(nn.Linear(25,13))
+		model:add(nn.Sigmoid())
+		layers.init(model)
+		return model
+	end
+
+	model = miniNet(params.nHER2Windows)
+	layers.init(model)
+	return model 
+end
 
 function models.resNetSiamese()
 

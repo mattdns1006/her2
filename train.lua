@@ -36,6 +36,12 @@ function train(inputs,target,caseNo)
 		torch.save(modelPath,model)
 		local clr = params.lr
 		params.lr = params.lr/params.lrDecay
+		optimState = {
+			learningRate = params.lr,
+			beta1 = 0.9,
+			beta2 = 0.999,
+			epsilon = 1e-8
+		}
 		print(string.format("Learning rate dropping from %f ====== > %f. ",clr,params.lr))
 	end
 	xlua.progress(count,params.nIter)

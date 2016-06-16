@@ -152,8 +152,8 @@ function loadData.loadXY(nWindows,windowSize)
 	end
 	
 	allTensors[1] = generateWindows(params.nHER2Windows,currentTable[1]["HER2"]) 
-	allTensors[2] = generateWindows(params.nHEWindows,currentTable[1]["HE"]) 
-	Xy["data"] = allTensors 
+	--allTensors[2] = generateWindows(params.nHEWindows,currentTable[1]["HE"]) 
+	Xy["data"] = allTensors[1] -- Just HER2 at the moment
 	Xy["caseNo"] = currentTable[4] 
 	Xy["score"] = currentTable[2] -- Normalize
 	Xy["percScore"] = currentTable[3] -- Normalize
